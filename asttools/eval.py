@@ -1,6 +1,7 @@
 import ast
 
 from .common import _convert_to_expression
+from .repr import ast_repr
 
 def _exec(node, ns):
     """
