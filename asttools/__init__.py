@@ -5,7 +5,7 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 
-from .repr import ast_source, ast_repr, ast_print
+from .repr import ast_source, ast_repr, ast_print, indented
 from .eval import _exec, _eval
 from .common import _convert_to_expression
 from .graph import graph_walk
