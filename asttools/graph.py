@@ -56,7 +56,8 @@ class AstGraphWalker(object):
 
     def handle_item(self, parent, node, field_name, i=None):
         """ insert node => (parent, field_name, i) into graph"""
-        if not isinstance(node, ast.AST):
+        if isinstance(node, (str, int, bytes, float, type(None))):
+            # skip scalars
             return
 
         location = {

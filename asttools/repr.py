@@ -28,7 +28,12 @@ class IndentDumper:
         node = item['node']
         class_name = node.__class__.__name__
         type_method = 'visit_{class_name}'.format(class_name=class_name)
-        handler = getattr(self, type_method, self.visit_generic)
+
+        generic = self.visit_generic
+        if not isinstance(node, ast.AST):
+            generic = self.visit_non_ast
+
+        handler = getattr(self, type_method, generic)
         rep = handler(item)
         if rep is None:
             return None
@@ -55,6 +60,17 @@ class IndentDumper:
         class_name = node.__class__.__name__
         return "Attribute(attr={attr})".format(attr=node.attr)
 
+    def visit_Str(self, item):
+        node = item['node']
+        class_name = node.__class__.__name__
+        return "{class_name}(s={s})".format(class_name=class_name,
+                                                  s=repr(node.s))
+
+    def visit_non_ast(self, item):
+        # normal repr printing for nonasts
+        node = item['node']
+        return repr(node)
+
     def visit_Load(self, item):
         return None
 
@@ -71,4 +87,5 @@ def indented(code):
         rep = dumper.visit(item)
         if rep is None:
             continue
-        print(indent, rep)
+        for line in rep.split('\n'):
+            print(indent, line)
