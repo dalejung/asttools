@@ -223,6 +223,16 @@ def generate_getter_lazy(manifest, prefix="_AST"):
     ns_update = {var_name: manifest}
     return ast.fix_missing_locations(getter), ns_update
 
+def quick_parse(line, *args, **kwargs):
+    """ quick way to generate nodes """
+    # TODO should I just grab .value of expressions?
+    # i.e. should "bob" return an Expression or Name node
+    line = line.format(*args, **kwargs)
+    body = ast.parse(line).body
+    if len(body) > 1:
+        raise Exception("quick_parse only works with single lines of code")
+    return body[0]
+
 def get_source(source):
     if isinstance(source, types.ModuleType):
         source = dedent(inspect.getsource(source))
