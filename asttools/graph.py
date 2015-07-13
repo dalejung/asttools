@@ -9,6 +9,7 @@ class AstGraphWalker(object):
             field_name : str,
             field_index : int or None,
             current_depth : int,
+            line : _ast.stmt.
             location : {parent, field_name, field_index}
         }
 
@@ -28,6 +29,7 @@ class AstGraphWalker(object):
             code = ast.parse(code)
         self.code = code
         self._processed = False
+        self.line = None
 
     def process(self):
         if self._processed:
@@ -39,6 +41,12 @@ class AstGraphWalker(object):
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         yield from visitor(node)
+
+    def visit_Module(self, node):
+        body = node.body
+        for line in node.body:
+            self.line = line
+            yield from self.generic_visit(line)
 
     def generic_visit(self, node):
         self.current_depth += 1
@@ -69,7 +77,8 @@ class AstGraphWalker(object):
         item = {
             'node': node,
             'depth': self.current_depth,
-            'location': location
+            'location': location,
+            'line': self.line
         }
 
         item.update(location)
@@ -80,4 +89,3 @@ class AstGraphWalker(object):
 def graph_walk(code):
     walker = AstGraphWalker(code)
     return walker.process()
-
