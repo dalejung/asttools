@@ -1,6 +1,9 @@
 import ast
+import inspect
+import types
 from itertools import zip_longest
 from collections import OrderedDict
+from textwrap import dedent
 
 import pandas as pd
 import numpy as np
@@ -215,9 +218,21 @@ def generate_getter_lazy(manifest, prefix="_AST"):
     args = []
     keywords = []
 
-    getter = ast.Call(func=func, args=args, keywords=keywords, 
+    getter = ast.Call(func=func, args=args, keywords=keywords,
                         starargs=None, kwargs=None)
     ns_update = {var_name: manifest}
     return ast.fix_missing_locations(getter), ns_update
 
+def get_source(source):
+    if isinstance(source, types.ModuleType):
+        source = dedent(inspect.getsource(source))
+    if isinstance(source, types.FunctionType):
+        source = dedent(inspect.getsource(source))
+    if isinstance(source, types.LambdaType):
+        source = dedent(inspect.getsource(source))
+    elif isinstance(source, (str)):
+        source = dedent(source)
+    else:
+        raise NotImplementedError
+    return source
 
