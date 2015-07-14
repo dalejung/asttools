@@ -193,19 +193,19 @@ def test_ast_graph_walk():
     nt.assert_count_equal(graph_nodes, walk_nodes)
 
     graph_types = [
-        ast.Expr,
-        ast.Call,
+        ast.Load,
         ast.Name,
         ast.Load,
-        ast.Call,
-        ast.Attribute,
-        ast.Attribute,
         ast.Name,
         ast.Load,
+        ast.Attribute,
         ast.Load,
-        ast.Load,
+        ast.Attribute,
         ast.Num,
-        ast.Num
+        ast.Num,
+        ast.Call,
+        ast.Call,
+        ast.Expr,
     ]
 
     # using type order to check that the type ordering is stable..
@@ -332,3 +332,16 @@ def test_generate_getter_lazy():
     node, ns = generate_getter_lazy(manifest)
     val = _eval(node, ns)
     nt.assert_equal(val, correct)
+
+source = """
+test(np.random.randn(10, 11))
+"""
+mod = ast.parse(dedent(source))
+
+items = list(graph_walk(mod))
+nodes = [item['node'] for item in items]
+walk_nodes = list(ast.walk(ast.parse(source)))
+
+for item in items:
+    node = item['node']
+    break
