@@ -44,9 +44,9 @@ class AstGraphWalker(object):
 
     def visit_Module(self, node):
         body = node.body
-        for line in node.body:
+        for i, line in enumerate(node.body):
             self.line = line
-            yield from self.generic_visit(line)
+            yield from self.handle_item(node, line, 'body', i)
 
     def generic_visit(self, node):
         self.current_depth += 1
