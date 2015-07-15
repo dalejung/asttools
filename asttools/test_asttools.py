@@ -341,6 +341,7 @@ mod = ast.parse(dedent(source))
 items = list(graph_walk(mod))
 nodes = [item['node'] for item in items]
 walk_nodes = list(ast.walk(ast.parse(source)))
+gen = graph_walk(mod)
 
 for item in items:
     node = item['node']
