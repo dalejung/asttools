@@ -18,6 +18,7 @@ from asttools import (
     generate_getter_lazy,
     graph_walk
 )
+from ..graph import NodeLocation
 
 class TestEval(TestCase):
     def test_exec(self):
@@ -332,6 +333,11 @@ def test_generate_getter_lazy():
     node, ns = generate_getter_lazy(manifest)
     val = _eval(node, ns)
     nt.assert_equal(val, correct)
+
+def test_node_location():
+    loc = NodeLocation(object(), 1, 2)
+    nt.assert_count_equal(loc.keys(), ['parent', 'field_name', 'field_index'])
+    nt.assert_count_equal(dict(loc), ['parent', 'field_name', 'field_index'])
 
 source = """
 test(np.random.randn(10, 11))

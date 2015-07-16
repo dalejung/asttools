@@ -13,11 +13,11 @@ from .eval import _exec, _eval
 from .common import _convert_to_expression
 from .graph import graph_walk
 
-def replace_node(parent, field, i, new_node):
-    if i is None:
+def replace_node(parent, field, field_index, new_node):
+    if field_index is None:
         setattr(parent, field, new_node)
     else:
-        getattr(parent, field)[i] = new_node
+        getattr(parent, field)[field_index] = new_node
 
 def is_load_name(node):
     """ is node a Name(ctx=Load()) variable? """

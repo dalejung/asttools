@@ -26,6 +26,9 @@ class NodeLocation:
     def __getitem__(self, name):
         return getattr(self, name)
 
+    def keys(self):
+        return self.__dict__.keys()
+
     def __iter__(self):
         return iter(self.__dict__.items())
 
