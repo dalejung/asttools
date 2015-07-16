@@ -45,3 +45,23 @@ def test_data_renamer():
     transform(mod, renamer)
     new_source = astor.to_source(mod)
     nt.assert_equals(new_source, "data['bob'] = data['frank']")
+
+def test_func_renamer():
+    """
+    Test passing in just a function for visitor.
+    """
+    def visitor(node, meta):
+        # like DataRenamer except just a function
+        if not isinstance(node, ast.Name):
+            return node
+
+        return ast.copy_location(ast.Subscript(
+                    value=ast.Name(id='data', ctx=ast.Load()),
+                    slice=ast.Index(value=ast.Str(s=node.id)),
+                    ctx=node.ctx
+                ), node)
+
+    mod = ast.parse("bob = frank")
+    transform(mod, visitor)
+    new_source = astor.to_source(mod)
+    nt.assert_equals(new_source, "data['bob'] = data['frank']")

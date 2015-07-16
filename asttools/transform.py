@@ -16,7 +16,7 @@ class NodeTransformer:
         return node
 
 
-def transform(root, nt):
+def transform(root, visitor):
     """
     Largely taken from the ast source. Works a bit differently because
     it depends on the graph_walk which returns items leaf first and then to
@@ -25,9 +25,12 @@ def transform(root, nt):
     gen = graph_walk(root)
     done = {}
 
+    if isinstance(visitor, NodeTransformer):
+        visitor = visitor.visit
+
     for item in gen:
         node = item['node']
-        new_node = nt.visit(node, item)
+        new_node = visitor(node, item)
 
         for field_name, old_value in ast.iter_fields(node):
             old_value = getattr(node, field_name, None)
