@@ -14,6 +14,31 @@ def iter_fields(node):
         else:
             yield field, field_name, None
 
+class NodeLocation:
+    def __init__(self, parent, field_name, field_index):
+        self.parent = parent
+        self.field_name = field_name
+        self.field_index = field_index
+
+    def __hash__(self):
+        return hash(tuple([self.parent, self.field_name, self.field_index]))
+
+    def __getitem__(self, name):
+        return getattr(self, name)
+
+    def __iter__(self):
+        return iter(self.__dict__.items())
+
+    def __repr__(self):
+        parent_class = self.parent.__class__.__name__
+        field_name = self.field_name
+        field_index = self.field_index
+        msg = "NodeLocation({parent_class}, {field_name}, {field_index})"
+        return msg.format(**locals())
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
 class AstGraphWalker(object):
     """
     Like ast.walk except that it emits a dict:
@@ -81,17 +106,17 @@ class AstGraphWalker(object):
         yield node_item
         return node_item
 
-    def handle_item(self, node, parent, field_name, i=None):
-        """ insert node => (parent, field_name, i) into graph"""
+    def handle_item(self, node, parent, field_name, field_index=None):
+        """ insert node => (parent, field_name, field_index) into graph"""
         if isinstance(node, (str, int, bytes, float, type(None))):
             # skip scalars
             return
 
-        location = {
-            'parent': parent,
-            'field_name': field_name,
-            'field_index': i
-        }
+        location = NodeLocation(
+            parent,
+            field_name,
+            field_index
+        )
 
         item = {
             'node': node,
