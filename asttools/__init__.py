@@ -39,8 +39,6 @@ def field_iter(node):
                 yield item, field_name, i
             continue
 
-        # need to flatten so we don't have special processing
-        # for lists vs single values
         item = field
         yield item, field_name, None
 
