@@ -12,6 +12,7 @@ from .repr import ast_source, ast_repr, ast_print, indented
 from .eval import _exec, _eval
 from .common import _convert_to_expression
 from .graph import graph_walk
+from .transform import NodeTransformer, transform
 
 def replace_node(parent, field, field_index, new_node):
     if field_index is None:
