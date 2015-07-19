@@ -4,6 +4,7 @@ from ast import AST
 from textwrap import dedent
 from .graph import graph_walk, NodeLocation
 
+_missing = object()
 
 class NodeTransformer:
     def visit(self, node, meta):
@@ -42,6 +43,12 @@ def transform(root, visitor):
     Largely taken from the ast source. Works a bit differently because
     it depends on the graph_walk which returns items leaf first and then to
     root.
+
+    Note that if we come across an unknown node (_missing), we assume that
+    the fields were mutated in the node visitor and we leave them alone.
+
+    This would occur if you changed the ast.Assign.value when handling the
+    ast.Assign node.
     """
     gen = graph_walk(root)
     done = {}
@@ -59,13 +66,19 @@ def transform(root, visitor):
             if isinstance(old_value, list):
                 new_values = []
                 for field_index, value in enumerate(old_value):
-                    done_node = done.get(value)
-                    if done_node:
+                    done_node = done.get(value, _missing)
+                    if done_node is _missing: # fields were mutated in visitor
+                        new_values.append(value)
+                    elif done_node:
                         new_values.append(done_node)
                 old_value[:] = new_values
 
             elif isinstance(old_value, ast.AST):
-                done_node = done.get(old_value)
+
+                done_node = done.get(old_value, _missing)
+                if done_node is _missing: # fields were mutated in visitor
+                    continue
+
                 if done_node is None:
                     delattr(node, field_name)
                 else:
