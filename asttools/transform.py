@@ -15,6 +15,27 @@ class NodeTransformer:
     def generic_visit(self, node, meta):
         return node
 
+class coroutine:
+    """
+    @coroutine.wrap
+    def handle():
+        node, meta = yield
+        while True:
+            node, meta = yield node
+        return node
+    """
+    def __init__(self, func, *args, **kwargs):
+        self.coro = func(*args, **kwargs)
+        next(self.coro) # prime coroutine
+
+    @classmethod
+    def wrap(cls, func):
+        def _factory(*args, **kwargs):
+            return cls(func, *args, **kwargs)
+        return _factory
+
+    def __call__(self, node, meta):
+        return self.coro.send((node, meta))
 
 def transform(root, visitor):
     """

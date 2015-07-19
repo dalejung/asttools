@@ -12,7 +12,7 @@ from .repr import ast_source, ast_repr, ast_print, indented
 from .eval import _exec, _eval
 from .common import _convert_to_expression
 from .graph import graph_walk
-from .transform import NodeTransformer, transform
+from .transform import NodeTransformer, transform, coroutine
 
 def replace_node(parent, field, field_index, new_node):
     if field_index is None:
@@ -224,13 +224,12 @@ def generate_getter_lazy(manifest, prefix="_AST"):
 
 def quick_parse(line, *args, **kwargs):
     """ quick way to generate nodes """
-    # TODO should I just grab .value of expressions?
-    # i.e. should "bob" return an Expression or Name node
     line = line.format(*args, **kwargs)
     body = ast.parse(line).body
     if len(body) > 1:
         raise Exception("quick_parse only works with single lines of code")
-    return body[0]
+    code = body[0]
+    return code
 
 def get_source(source):
     if isinstance(source, types.ModuleType):
