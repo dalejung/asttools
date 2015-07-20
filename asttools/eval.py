@@ -23,7 +23,7 @@ def _eval(node, ns):
         raise Exception("{0} cannot be evaled".format(repr(node)))
     return _exec(node, ns)
 
-def _compile(node, force_eval=False):
+def _compile(node, force_eval=False, filename="<asttools>"):
     node = ast.fix_missing_locations(node)
 
     mode = 'exec'
@@ -37,5 +37,5 @@ def _compile(node, force_eval=False):
         module = expr
         mode = 'eval'
 
-    code = compile(module, '<dale>', mode)
+    code = compile(module, filename, mode)
     return code

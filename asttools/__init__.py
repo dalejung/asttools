@@ -236,6 +236,10 @@ def get_source(source):
         source = dedent(inspect.getsource(source))
     if isinstance(source, types.FunctionType):
         source = dedent(inspect.getsource(source))
+        source_lines = source.split('\n')
+        # remove decorators
+        not_decorator = lambda line: not line.startswith('@')
+        source = '\n'.join(filter(not_decorator, source_lines))
     if isinstance(source, types.LambdaType):
         source = dedent(inspect.getsource(source))
     elif isinstance(source, (str)):
