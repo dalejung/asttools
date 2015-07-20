@@ -1,6 +1,7 @@
 import ast
 import inspect
 import types
+import ctypes
 from itertools import zip_longest
 from collections import OrderedDict
 from textwrap import dedent
@@ -13,6 +14,9 @@ from .eval import _exec, _eval
 from .common import _convert_to_expression
 from .graph import graph_walk
 from .transform import NodeTransformer, transform, coroutine
+
+def reload_locals(frame):
+    ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object(frame), ctypes.c_int(1))
 
 def replace_node(parent, field, field_index, new_node):
     if field_index is None:
