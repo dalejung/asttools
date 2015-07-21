@@ -11,7 +11,7 @@ import numpy as np
 
 from .repr import ast_source, ast_repr, ast_print, indented
 from .eval import _exec, _eval
-from .common import _convert_to_expression
+from .common import _convert_to_expression, iter_fields
 from .graph import graph_walk
 from .transform import NodeTransformer, transform, coroutine
 
@@ -252,3 +252,74 @@ def get_source(source):
         raise NotImplementedError
     return source
 
+
+"""
+Structural matching on ast with sentinels for wildcard matching.
+
+template = '<any>'._any_()"
+test = ast.parse('"hello {bob}".capture()')
+for node in ast.walk(test):
+    if matcher.match(node):
+        node.kwargs = quick_parse("locals()").value
+        node.func.attr = 'format'
+"""
+_missing = object()
+class Matcher:
+    def __init__(self, template):
+        if isinstance(template, str):
+            template = quick_parse(template).value
+        self.template = template
+
+    def match(self, other, node=_missing):
+        if node is _missing:
+            node = self.template
+
+        method = 'match_' + node.__class__.__name__
+        matcher = getattr(self, method, self.generic_match)
+        node_item = matcher(other, node)
+        return node_item
+
+    def generic_match(self, other, node):
+        if type(node) != type(other):
+            return False
+
+        # match scalars via equality
+        if not isinstance(node, ast.AST):
+            return node == other
+
+        return self.match_children(other, node)
+
+    def match_children(self, other, node, skip=()):
+        if not isinstance(node, ast.AST):
+            return True
+
+        for item, field_name, field_index in iter_fields(node):
+            # we still try to grab other's child to make sure we have the same
+            # structure.
+            try:
+                if field_index is None:
+                    other_child = getattr(other, field_name)
+                else:
+                    other_child = getattr(other, field_name)[field_index]
+            except (AttributeError, KeyError):
+                return False
+
+            if field_name in skip:
+                continue
+
+            # children did not match, short circuit out of here
+            if not self.match(other_child, item):
+                return False
+        return True
+
+    def match_Str(self, other, node):
+        if node.s == '<any>':
+            return True
+        return node.s == other.s
+
+    def match_Attribute(self, other, node):
+        skip = ()
+        if node.attr == '_any_':
+            skip = ('attr')
+
+        return self.match_children(other, node, skip=skip)
