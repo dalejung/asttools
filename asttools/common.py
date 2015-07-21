@@ -1,3 +1,6 @@
+"""
+Nothing here can import asttools modules.
+"""
 import ast
 
 def _convert_to_expression(node):
@@ -20,4 +23,17 @@ def _convert_to_expression(node):
 
     if isinstance(node, ast.Expr):
         return ast.Expression(lineno=0, col_offset=0, body=node.value)
+
+def iter_fields(node):
+    """
+    Returns child_node, field_name, field_index tuple.
+
+    field_index will be None when field is singular.
+    """
+    for field_name, field in ast.iter_fields(node):
+        if isinstance(field, list):
+            for i, item in enumerate(field):
+                yield item, field_name, i
+        else:
+            yield field, field_name, None
 

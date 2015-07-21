@@ -1,18 +1,7 @@
 import ast
 from collections import OrderedDict
 
-def iter_fields(node):
-    """
-    Returns child_node, field_name, field_index tuple.
-
-    field_index will be None when field is singular.
-    """
-    for field_name, field in ast.iter_fields(node):
-        if isinstance(field, list):
-            for i, item in enumerate(field):
-                yield item, field_name, i
-        else:
-            yield field, field_name, None
+from .common import iter_fields
 
 class NodeLocation:
     def __init__(self, parent, field_name, field_index):
