@@ -2,7 +2,7 @@ import ast
 import inspect
 import nose.tools as nt
 
-from . import get_source, quick_parse
+from .common import get_source, quick_parse
 
 def create_function(code, func=None,
                     globals=None,
@@ -44,9 +44,12 @@ def create_function(code, func=None,
     new_func = ns[func_name]
     return new_func
 
-def wrap(transform):
+def func_rewrite(transform, post_wrap=None):
     def _wrapper(func):
         code = ast.parse(get_source(func))
         transform(code)
-        return create_function(code, func=func)
+        new_func = create_function(code, func=func)
+        if post_wrap:
+            post_wrap(new_func, func)
+        return new_func
     return _wrapper

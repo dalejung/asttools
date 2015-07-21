@@ -11,9 +11,10 @@ import numpy as np
 
 from .repr import ast_source, ast_repr, ast_print, indented
 from .eval import _exec, _eval
-from .common import _convert_to_expression, iter_fields
+from .common import _convert_to_expression, iter_fields, quick_parse, get_source
 from .graph import graph_walk
 from .transform import NodeTransformer, transform, coroutine
+from .function import func_rewrite, create_function
 
 def reload_locals(frame):
     ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object(frame), ctypes.c_int(1))
@@ -225,32 +226,6 @@ def generate_getter_lazy(manifest, prefix="_AST"):
                         starargs=None, kwargs=None)
     ns_update = {var_name: manifest}
     return ast.fix_missing_locations(getter), ns_update
-
-def quick_parse(line, *args, **kwargs):
-    """ quick way to generate nodes """
-    line = line.format(*args, **kwargs)
-    body = ast.parse(line).body
-    if len(body) > 1:
-        raise Exception("quick_parse only works with single lines of code")
-    code = body[0]
-    return code
-
-def get_source(source):
-    if isinstance(source, types.ModuleType):
-        source = dedent(inspect.getsource(source))
-    if isinstance(source, types.FunctionType):
-        source = dedent(inspect.getsource(source))
-        source_lines = source.split('\n')
-        # remove decorators
-        not_decorator = lambda line: not line.startswith('@')
-        source = '\n'.join(filter(not_decorator, source_lines))
-    if isinstance(source, types.LambdaType):
-        source = dedent(inspect.getsource(source))
-    elif isinstance(source, (str)):
-        source = dedent(source)
-    else:
-        raise NotImplementedError
-    return source
 
 
 """

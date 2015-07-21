@@ -2,6 +2,9 @@
 Nothing here can import asttools modules.
 """
 import ast
+import inspect
+import types
+from textwrap import dedent
 
 def _convert_to_expression(node):
     """ convert ast node to ast.Expression if possible, None if not """
@@ -37,3 +40,28 @@ def iter_fields(node):
         else:
             yield field, field_name, None
 
+def get_source(source):
+    if isinstance(source, types.ModuleType):
+        source = dedent(inspect.getsource(source))
+    if isinstance(source, types.FunctionType):
+        source = dedent(inspect.getsource(source))
+        source_lines = source.split('\n')
+        # remove decorators
+        not_decorator = lambda line: not line.startswith('@')
+        source = '\n'.join(filter(not_decorator, source_lines))
+    if isinstance(source, types.LambdaType):
+        source = dedent(inspect.getsource(source))
+    elif isinstance(source, (str)):
+        source = dedent(source)
+    else:
+        raise NotImplementedError
+    return source
+
+def quick_parse(line, *args, **kwargs):
+    """ quick way to generate nodes """
+    line = line.format(*args, **kwargs)
+    body = ast.parse(line).body
+    if len(body) > 1:
+        raise Exception("quick_parse only works with single lines of code")
+    code = body[0]
+    return code

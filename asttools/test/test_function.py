@@ -3,7 +3,7 @@ import ast
 import nose.tools as nt
 
 from .. import get_source, quick_parse, Matcher
-from ..function import create_function, wrap
+from ..function import create_function, func_rewrite
 from ..transform import coroutine, transform
 from ..graph import iter_fields
 
@@ -48,7 +48,7 @@ def test_wrap():
             return node
         return transform(code, _transform())
 
-    @wrap(capture_transform)
+    @func_rewrite(capture_transform)
     def hello(obj):
         end = 'goodbye'
         return "hello {obj}... {end}".capture()
