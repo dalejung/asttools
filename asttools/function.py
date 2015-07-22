@@ -53,3 +53,25 @@ def func_rewrite(transform, post_wrap=None):
             post_wrap(new_func, func)
         return new_func
     return _wrapper
+
+def get_invoked_args(func, *args, **kwargs):
+    """
+    Based on a functions argspec, figure out what the resultant function
+    scope would be based on variables passed in
+    """
+    # handle functools.wraps functions
+    if hasattr(func, '__wrapped__'):
+        argspec = inspect.getargspec(func.__wrapped__)
+    else:
+        argspec = inspect.getargspec(func)
+
+    # we're assuming self is not in *args for method calls
+    args_names = argspec.args
+    if argspec.args[0] == 'self':
+        args_names = args_names[1:]
+
+    realized_args = dict(zip(args_names, args))
+    assert not set(realized_args).intersection(kwargs)
+    res = kwargs.copy()
+    res.update(realized_args)
+    return res
