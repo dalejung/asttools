@@ -242,7 +242,9 @@ _missing = object()
 class Matcher:
     def __init__(self, template):
         if isinstance(template, str):
-            template = quick_parse(template).value
+            template = quick_parse(template)
+            if isinstance(template, ast.Expr):
+                template = template.value
         self.template = template
 
     def match(self, other, node=_missing):
@@ -296,5 +298,15 @@ class Matcher:
         skip = ()
         if node.attr == '_any_':
             skip = ('attr')
+
+        return self.match_children(other, node, skip=skip)
+
+    def match_With(self, other, node):
+        skip = ()
+        body = node.body
+        line = body[0]
+        if len(body) == 1 and isinstance(line, ast.Expr) \
+        and isinstance(line.value, ast.Name) and line.value.id == '_any_':
+            skip = ('body')
 
         return self.match_children(other, node, skip=skip)

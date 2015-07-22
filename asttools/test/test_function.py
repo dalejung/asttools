@@ -54,3 +54,14 @@ def test_wrap():
         return "hello {obj}... {end}".capture()
 
     nt.assert_equal(hello('bob'), 'hello bob... goodbye')
+
+
+def test_matcher_with():
+    matcher = Matcher("with capture(): _any_")
+    test_code = ast.parse("with capture(): pass")
+    nt.assert_true(matcher.match(test_code.body[0]))
+
+    # remove any sentinel
+    matcher = Matcher("with capture(): 1")
+    test_code = ast.parse("with capture(): pass")
+    nt.assert_false(matcher.match(test_code.body[0]))
