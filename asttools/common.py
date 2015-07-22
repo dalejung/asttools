@@ -44,6 +44,7 @@ def get_source(source):
     if isinstance(source, types.ModuleType):
         source = dedent(inspect.getsource(source))
     if isinstance(source, types.FunctionType):
+        source = inspect.unwrap(source)
         source = dedent(inspect.getsource(source))
         source_lines = source.split('\n')
         # remove decorators
