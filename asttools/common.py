@@ -60,7 +60,8 @@ def get_source(source):
 
 def quick_parse(line, *args, **kwargs):
     """ quick way to generate nodes """
-    line = line.format(*args, **kwargs)
+    if args or kwargs:
+        line = line.format(*args, **kwargs)
     body = ast.parse(line).body
     if len(body) > 1:
         raise Exception("quick_parse only works with single lines of code")
