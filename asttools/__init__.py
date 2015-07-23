@@ -19,11 +19,19 @@ from .function import func_rewrite, create_function
 def reload_locals(frame):
     ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object(frame), ctypes.c_int(1))
 
-def replace_node(parent, field, field_index, new_node):
+def replace_node(parent, field_name, field_index, node):
     if field_index is None:
-        setattr(parent, field, new_node)
+        setattr(parent, field_name, node)
     else:
-        getattr(parent, field)[field_index] = new_node
+        getattr(parent, field_name)[field_index] = node
+
+def delete_node(parent, field_name, field_index, node):
+    if field_index is None:
+        old_node = getattr(parent, field_name)
+        delattr(parent, field_name)
+    else:
+        old_node = getattr(parent, field_name).pop(field_index)
+    assert node is old_node, "Existing node is not node we're trying to delete"
 
 def is_load_name(node):
     """ is node a Name(ctx=Load()) variable? """
