@@ -35,12 +35,20 @@ def create_function(code, func=None,
     if isinstance(code, str):
         code = ast.parse(code)
 
-    func_def = code.body[0]
+    module = code
+    if isinstance(code, ast.FunctionDef):
+        module = ast.Module()
+        module.body = [code]
+
+    if not isinstance(module, ast.Module):
+        raise TypeError("Expected ast.Module by this point.")
+
+    func_def = module.body[0]
     func_name = func_def.name
-    code_obj = compile(code, filename, 'exec')
+    module_obj = compile(module, filename, 'exec')
 
     ns = {}
-    exec(code_obj, globals, ns)
+    exec(module_obj, globals, ns)
     new_func = ns[func_name]
     return new_func
 
@@ -75,3 +83,23 @@ def get_invoked_args(func, *args, **kwargs):
     res = kwargs.copy()
     res.update(realized_args)
     return res
+
+def func_args_realizer(func_def):
+    """
+    Using an ast.FunctionDef node, create a items list node that
+    will give us the passed in args by name.
+    def whee(bob, frank=1):
+        pass
+
+    whee(1, 3) => [('bob', 1), ('frank', 3)]
+    whee(1) => [('bob', 1), ('frank', 1)]
+    """
+    args = [arg.arg for arg in func_def.args.args]
+    kw_only = [arg.arg for arg in func_def.args.kwonlyargs]
+    args = args + kw_only
+    if args[0] == 'self':
+        args.pop(0)
+
+    items = map("('{0}', {0})".format, args)
+    items_list = "[ {0} ]".format(', '.join(items))
+    return items_list
