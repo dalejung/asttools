@@ -11,7 +11,13 @@ import numpy as np
 
 from .repr import ast_source, ast_repr, ast_print, indented
 from .eval import _exec, _eval
-from .common import _convert_to_expression, iter_fields, quick_parse, get_source
+from .common import (
+    _convert_to_expression,
+    iter_fields,
+    quick_parse,
+    get_source,
+    unwrap
+)
 from .graph import graph_walk
 from .transform import NodeTransformer, transform, coroutine
 from .function import func_rewrite, create_function, func_code, ast_argspec

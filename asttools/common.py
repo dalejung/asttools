@@ -67,3 +67,14 @@ def quick_parse(line, *args, **kwargs):
         raise Exception("quick_parse only works with single lines of code")
     code = body[0]
     return code
+
+def unwrap(node):
+    """
+    It a node cleanly translates to a python literal, return it instead.
+    """
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Num):
+        return node.n
+    raise TypeError("Only handle primitive like nodes")
+
