@@ -72,16 +72,17 @@ def func_code(func):
     assert isinstance(func_def, ast.FunctionDef)
     return func_def
 
-def get_invoked_args(func, *args, **kwargs):
+def get_invoked_args(argspec, *args, **kwargs):
     """
     Based on a functions argspec, figure out what the resultant function
     scope would be based on variables passed in
     """
-    # handle functools.wraps functions
-    if hasattr(func, '__wrapped__'):
-        argspec = inspect.getargspec(func.__wrapped__)
-    else:
-        argspec = inspect.getargspec(func)
+    if not isinstance(argspec, inspect.ArgSpec):
+        # handle functools.wraps functions
+        if hasattr(func, '__wrapped__'):
+            argspec = inspect.getargspec(argspec.__wrapped__)
+        else:
+            argspec = inspect.getargspec(argspec)
 
     # we're assuming self is not in *args for method calls
     args_names = argspec.args
