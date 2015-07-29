@@ -124,6 +124,22 @@ class Matcher:
 
         return self.match_children(other, node, skip=skip)
 
+    def match_UnaryOp(self, other, node):
+        skip = ()
+        if is_any(node.operand):
+            skip = ('operand')
+
+        return self.match_children(other, node, skip=skip)
+
+    def match_BinOp(self, other, node):
+        skip = []
+        if is_any(node.left):
+            skip.append(('left'))
+        if is_any(node.right):
+            skip.append(('right'))
+
+        return self.match_children(other, node, skip=skip)
+
     def __eq__(self, other):
         if not isinstance(other, ast.AST):
             raise TypeError("Can only compare to AST")

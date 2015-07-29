@@ -87,3 +87,24 @@ def test_subscript():
 
     with nt.assert_raises(AssertionError):
         AM("other[1]") << "test[1]"
+
+def test_unary_op():
+    AM("~_any_") << "~testme"
+    AM("~testme") << "~testme"
+    with nt.assert_raises(AssertionError):
+        AM("~testme") << "~testme3333"
+
+def test_binary_op():
+    AM("dale | _any_") << "dale | 123"
+    AM("_any_ | _any_") << "fooo | m[123]"
+    # mismatched operand
+    with nt.assert_raises(AssertionError):
+        AM("_any_ | _any_") << "fooo + m[123]"
+
+    # left off
+    with nt.assert_raises(AssertionError):
+        AM("dale | _any_") << "fooo | m[123]"
+
+    # right off
+    with nt.assert_raises(AssertionError):
+        AM("_any_ | test") << "fooo | m[123]"
