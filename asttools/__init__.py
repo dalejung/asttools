@@ -246,6 +246,20 @@ for node in ast.walk(test):
         node.kwargs = quick_parse("locals()").value
         node.func.attr = 'format'
 """
+def is_any(val):
+    # string match
+    if val in ['<any>', '_any_']:
+        return True
+
+    # ast.Call.args, ast.With.
+    if isinstance(val, list) and len(val) == 1:
+        return is_any(val[0])
+
+    if isinstance(val, ast.Name) and val.id == '_any_':
+        return True
+    return False
+
+
 _missing = object()
 class Matcher:
     def __init__(self, template):
@@ -298,7 +312,7 @@ class Matcher:
         return True
 
     def match_Str(self, other, node):
-        if node.s == '<any>':
+        if is_any(node.s):
             return True
         return node.s == other.s
 
@@ -309,12 +323,25 @@ class Matcher:
 
         return self.match_children(other, node, skip=skip)
 
+    def match_Call(self, other, node):
+        """
+        call(_any_)
+        """
+        skip = ()
+        if is_any(node.args):
+            skip = ('args')
+        return self.match_children(other, node, skip=skip)
+
     def match_With(self, other, node):
+        """
+        with With():
+            _any_
+        """
         skip = ()
         body = node.body
         line = body[0]
         if len(body) == 1 and isinstance(line, ast.Expr) \
-        and isinstance(line.value, ast.Name) and line.value.id == '_any_':
+        and is_any(line.value):
             skip = ('body')
 
         return self.match_children(other, node, skip=skip)
