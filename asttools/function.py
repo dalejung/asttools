@@ -62,6 +62,16 @@ def func_rewrite(transform, post_wrap=None):
         return new_func
     return _wrapper
 
+def func_code(func):
+    """
+    return the ast.FunctionDef node of a function
+    """
+    code = ast.parse(get_source(func))
+    func_def = code.body[0]
+    assert len(code.body) == 1
+    assert isinstance(func_def, ast.FunctionDef)
+    return func_def
+
 def get_invoked_args(func, *args, **kwargs):
     """
     Based on a functions argspec, figure out what the resultant function
@@ -103,3 +113,5 @@ def func_args_realizer(func_def):
     items = map("('{0}', {0})".format, args)
     items_list = "[ {0} ]".format(', '.join(items))
     return items_list
+
+
