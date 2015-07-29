@@ -14,7 +14,7 @@ from .eval import _exec, _eval
 from .common import _convert_to_expression, iter_fields, quick_parse, get_source
 from .graph import graph_walk
 from .transform import NodeTransformer, transform, coroutine
-from .function import func_rewrite, create_function, func_code
+from .function import func_rewrite, create_function, func_code, ast_argspec
 
 def reload_locals(frame):
     ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object(frame), ctypes.c_int(1))

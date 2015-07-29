@@ -114,4 +114,64 @@ def func_args_realizer(func_def):
     items_list = "[ {0} ]".format(', '.join(items))
     return items_list
 
+def arg_name(arg):
+    if isinstance(arg, str):
+        return arg
+    if isinstance(arg, ast.Name):
+        return arg.id
+    if isinstance(arg, (ast.arg, ast.keyword)):
+        return arg.arg
+    raise TypeError("Only accepts str, Name and arg")
 
+def arglist(node):
+    try:
+        return node.args.args
+    except AttributeError:
+        return node.args
+
+def ast_argspec(node):
+    """
+    Get the argspec equivalent from ast.Call and ast.FunctionDef.
+
+    Both:
+
+    def func(arg1, arg2, *args, **kwargs):
+        pass
+
+    func(arg1, arg2, *args, **kwargs)
+
+    will return the same argspec.
+
+    Note: The defaults will ast.Node since we don't know the values of
+    variables till runtime.
+    """
+    if isinstance(node, ast.Call):
+        ret = _ast_argspec_call(node)
+    elif isinstance(node, ast.FunctionDef):
+        ret = _ast_argspec_def(node)
+    else:
+        raise TypeError()
+
+    return ret
+
+def _ast_argspec_call(node):
+    args = [arg_name(arg) for arg in node.args]
+    kw = [(kw.arg, kw.value) for kw in node.keywords]
+    kw_args, kw_defaults = [], []
+    if kw:
+        kw_args, kw_defaults = zip(*kw)
+    args = args + list(kw_args)
+
+    varargs = node.starargs and node.starargs.id
+    keywords = node.kwargs and node.kwargs.id
+    argspec = inspect.ArgSpec(args, varargs, keywords, kw_defaults)
+    return argspec
+
+def _ast_argspec_def(node):
+    args = [arg_name(arg) for arg in node.args.args]
+    kw_defaults = node.args.defaults
+
+    varargs = node.args.vararg and node.args.vararg.arg
+    keywords = node.args.kwarg and node.args.kwarg.arg
+    argspec = inspect.ArgSpec(args, varargs, keywords, kw_defaults)
+    return argspec

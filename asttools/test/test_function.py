@@ -1,9 +1,11 @@
 import ast
+from textwrap import dedent
+from itertools import zip_longest, starmap
 
 import nose.tools as nt
 
 from .. import get_source, quick_parse, Matcher
-from ..function import create_function, func_rewrite
+from ..function import create_function, func_rewrite, ast_argspec
 from ..transform import coroutine, transform
 from ..graph import iter_fields
 
@@ -65,3 +67,65 @@ def test_matcher_with():
     matcher = Matcher("with capture(): 1")
     test_code = ast.parse("with capture(): pass")
     nt.assert_false(matcher.match(test_code.body[0]))
+
+def ast_argspec_case(source):
+    code = ast.parse(dedent(source))
+    func_def = code.body[0]
+    call = code.body[1].value
+    assert isinstance(func_def, ast.FunctionDef)
+    assert isinstance(call, ast.Call)
+
+    func_argspec = ast_argspec(func_def)
+    call_argspec = ast_argspec(call)
+    same, failures = ast_argspec_equal(func_argspec, call_argspec)
+    if not same:
+        raise AssertionError(str(failures))
+
+def _equal(left, right):
+    if isinstance(left, (list, tuple)):
+        return starmap(_equal, zip_longest(left, right))
+
+    if isinstance(left, ast.AST):
+        left = ast.dump(left)
+        right = ast.dump(right)
+    return (left == right, left, right)
+
+listify = lambda x: not isinstance(x, (list, tuple)) and [x] or x
+
+def ast_argspec_equal(left, right):
+    attrs = ['args', 'varargs', 'keywords', 'defaults']
+    lefts = [getattr(left, attr) for attr in attrs]
+    rights = [getattr(right, attr) for attr in attrs]
+    for lval, rval in zip(lefts, rights):
+        lval, rval = listify(lval), listify(rval)
+        ret = _equal(lval, rval)
+        failures = list(filter(lambda x: not x[0], ret))
+        if any(failures):
+            return False, failures
+    return True, []
+
+def test_argsepc_equal():
+    source = """
+    def func(arg1, arg2, *args, **kwargs):
+        pass
+
+    func(arg1, arg2, *args, **kwargs)
+    """
+    ast_argspec_case(source)
+
+    source = """
+    def func(arg1, arg2=1):
+        pass
+
+    func(arg1, arg2=1)
+    """
+    ast_argspec_case(source)
+
+    source = """
+    def func(arg1, arg2='different'):
+        pass
+
+    func(arg1, arg2=1)
+    """
+    with nt.assert_raises(AssertionError):
+        ast_argspec_case(source)
