@@ -78,8 +78,12 @@ def test_subscript():
     AM("meta[_any_]") << "meta[bob, frank:1]"
     AM("meta[_any_]") << "meta[1]"
     AM("meta[dale]") << "meta[dale]"
+    AM("print(meta[dale])") << "print(meta[dale])"
     with nt.assert_raises(AssertionError):
         AM("meta[1]") << "meta[bob, frank:1]"
+
+    with nt.assert_raises(AssertionError):
+        AM("print(meta[dale])") << "other(meta[dale])"
 
     with nt.assert_raises(AssertionError):
         AM("other[1]") << "test[1]"
