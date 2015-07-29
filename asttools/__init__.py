@@ -270,8 +270,11 @@ class Matcher:
         self.template = template
 
     def match(self, other, node=_missing):
-        if node is _missing:
+        if node is _missing: # first run
             node = self.template
+            # unwrap expression
+            if isinstance(other, ast.Expr):
+                other = other.value
 
         method = 'match_' + node.__class__.__name__
         matcher = getattr(self, method, self.generic_match)
@@ -345,3 +348,8 @@ class Matcher:
             skip = ('body')
 
         return self.match_children(other, node, skip=skip)
+
+    def __eq__(self, other):
+        if not isinstance(other, ast.AST):
+            raise TypeError("Can only compare to AST")
+        return self.match(other)
