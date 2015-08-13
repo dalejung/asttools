@@ -162,3 +162,26 @@ def test_create_function_method_super():
     new_init = create_function(source, Obj.old_init)
     Obj.__init__ = new_init
     nt.assert_true(Obj().new_init) # yay
+
+def test_create_function_ignore_closure():
+    """
+    Sometimes the original function has a closure, but you don't need it
+    after transform.
+    """
+    class Obj:
+        def __init__(self):
+            super().__init__()
+    Obj.old_init = Obj.__init__
+
+    def _init(self):
+        self.new_init = True
+
+    source = get_source(_init)
+    with nt.assert_raises_regex(ValueError, "requires closure of length 0"):
+        new_init = create_function(source, Obj.old_init)
+        # fails
+
+    new_init = create_function(source, Obj.old_init, ignore_closure=True)
+    Obj.__init__ = new_init
+
+    nt.assert_true(Obj().new_init) # yay

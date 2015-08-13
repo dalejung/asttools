@@ -8,7 +8,8 @@ from .repr import ast_source
 
 def create_function(code, func=None,
                     globals=None,
-                    filename=None):
+                    filename=None,
+                    ignore_closure=False):
     """
     Creates a function object without touching any existing namespaces. Using
     something like types.FunctionType doesn't work because you cannot compile
@@ -51,7 +52,7 @@ def create_function(code, func=None,
     grabber = lambda ns, func_name: ns[func_name]
 
     uses_super = False
-    if func and func.__closure__:
+    if func and func.__closure__ and not ignore_closure:
         if func.__code__.co_freevars == ('__class__',):
             uses_super = True
         else:
