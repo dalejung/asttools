@@ -138,3 +138,27 @@ def test_argsepc_equal():
     """
     with nt.assert_raises(AssertionError):
         ast_argspec_case(source)
+
+def test_create_function_method_super():
+    """
+    The only caveat with creating functions is when you have to deal with
+    closures. super() is one such instance.
+    """
+    class Obj:
+        def __init__(self):
+            super().__init__()
+    Obj.old_init = Obj.__init__
+
+    def _init(self):
+        super().__init__()
+        self.new_init = True
+
+    Obj.__init__ = _init
+    with nt.assert_raises(RuntimeError):
+        # bah, we didn't account for the super() cell
+        Obj()
+    source = get_source(_init)
+
+    new_init = create_function(source, Obj.old_init)
+    Obj.__init__ = new_init
+    nt.assert_true(Obj().new_init) # yay

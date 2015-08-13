@@ -1,6 +1,7 @@
 import ast
 import inspect
 import nose.tools as nt
+import types
 
 from .common import get_source, quick_parse
 from .repr import ast_source
@@ -46,13 +47,49 @@ def create_function(code, func=None,
 
     func_def = module.body[0]
     func_name = func_def.name
+
+    grabber = lambda ns, func_name: ns[func_name]
+
+    uses_super = False
+    if func and func.__closure__:
+        if func.__code__.co_freevars == ('__class__',):
+            uses_super = True
+        else:
+            raise Exception("Current can't handle closures other than super()")
+
+    if uses_super:
+        class_def = wrap_func_def_in_class(func_def)
+        module.body = [class_def]
+        grabber = lambda ns, func_name: getattr(ns['klass'], func_name)
+
     module_obj = compile(module, filename, 'exec')
 
     ns = {}
     exec(module_obj, globals, ns)
-    new_func = ns[func_name]
+    new_func = grabber(ns, func_name)
+
+    if uses_super:
+        new_func = types.FunctionType(new_func.__code__, new_func.__globals__,
+                                    closure=func.__closure__)
+
     new_func.__asttools_source__ = ast_source(module)
+
     return new_func
+
+def wrap_func_def_in_class(func_def):
+    class_def = ast.ClassDef(
+        name='klass',
+        bases=[],
+        keywords=[],
+        body=[func_def],
+        lineno=0,
+        col_offset=0,
+        decorator_list=[],
+        starargs=None,
+        kwargs=None
+    )
+    return class_def
+
 
 def func_rewrite(transform, post_wrap=None):
     def _wrapper(func):
