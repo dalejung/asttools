@@ -35,6 +35,14 @@ def test_create_function_globals():
                                 globals={'AST':1})
     nt.assert_equal(new_func2(), 1)
 
+def test_create_function_source():
+    source = "def walk(): return AST"
+    new_func = create_function(source, ast.walk)
+    correct = ast.parse(source)
+    test = ast.parse(new_func.__asttools_source__)
+    nt.assert_equal(ast.dump(test), ast.dump(correct))
+    # should grab AST form the ast.walk global namespace
+
 def test_wrap():
     def capture_transform(code):
         @coroutine.wrap

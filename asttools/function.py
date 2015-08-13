@@ -3,6 +3,7 @@ import inspect
 import nose.tools as nt
 
 from .common import get_source, quick_parse
+from .repr import ast_source
 
 def create_function(code, func=None,
                     globals=None,
@@ -50,6 +51,7 @@ def create_function(code, func=None,
     ns = {}
     exec(module_obj, globals, ns)
     new_func = ns[func_name]
+    new_func.__asttools_source__ = ast_source(module)
     return new_func
 
 def func_rewrite(transform, post_wrap=None):
