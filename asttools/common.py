@@ -40,19 +40,23 @@ def iter_fields(node):
         else:
             yield field, field_name, None
 
-def get_source(source):
-    if isinstance(source, types.ModuleType):
-        source = dedent(inspect.getsource(source))
-    if isinstance(source, types.FunctionType):
-        source = inspect.unwrap(source)
-        source = dedent(inspect.getsource(source))
-        source_lines = source.split('\n')
-        # remove decorators
-        not_decorator = lambda line: not line.startswith('@')
-        source = '\n'.join(filter(not_decorator, source_lines))
-    if isinstance(source, types.LambdaType):
-        source = dedent(inspect.getsource(source))
-    elif isinstance(source, (str)):
+def get_source(obj):
+    if isinstance(obj, types.ModuleType):
+        source = inspect.getsource(obj)
+    elif isinstance(obj, types.FunctionType):
+        # try source generated from create_function first
+        source = getattr(obj, '__asttools_source__', None)
+        if source is None:
+            source = inspect.unwrap(obj)
+            source = dedent(inspect.getsource(source))
+            source_lines = source.split('\n')
+            # remove decorators
+            not_decorator = lambda line: not line.startswith('@')
+            source = '\n'.join(filter(not_decorator, source_lines))
+    elif isinstance(obj, types.LambdaType):
+        source = inspect.getsource(obj)
+
+    if isinstance(source, (str)):
         source = dedent(source)
     else:
         raise NotImplementedError
