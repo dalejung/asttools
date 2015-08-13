@@ -41,6 +41,8 @@ def iter_fields(node):
             yield field, field_name, None
 
 def get_source(obj):
+
+    source = obj
     if isinstance(obj, types.ModuleType):
         source = inspect.getsource(obj)
     elif isinstance(obj, types.FunctionType):
@@ -59,7 +61,7 @@ def get_source(obj):
     if isinstance(source, (str)):
         source = dedent(source)
     else:
-        raise NotImplementedError
+        raise NotImplementedError("{0}".format(str(source)))
     return source
 
 def quick_parse(line, *args, **kwargs):
