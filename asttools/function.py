@@ -119,7 +119,7 @@ def get_invoked_args(argspec, *args, **kwargs):
     """
     if not isinstance(argspec, inspect.ArgSpec):
         # handle functools.wraps functions
-        if hasattr(func, '__wrapped__'):
+        if hasattr(argspec, '__wrapped__'):
             argspec = inspect.getargspec(argspec.__wrapped__)
         else:
             argspec = inspect.getargspec(argspec)
@@ -135,7 +135,15 @@ def get_invoked_args(argspec, *args, **kwargs):
     res.update(realized_args)
     return res
 
-def func_args_realizer(func_def):
+def func_def_args(func_def):
+    args = [arg.arg for arg in func_def.args.args]
+    kw_only = [arg.arg for arg in func_def.args.kwonlyargs]
+    args = args + kw_only
+    if args[0] == 'self':
+        args.pop(0)
+    return args
+
+def func_args_realizer(args):
     """
     Using an ast.FunctionDef node, create a items list node that
     will give us the passed in args by name.
@@ -145,12 +153,6 @@ def func_args_realizer(func_def):
     whee(1, 3) => [('bob', 1), ('frank', 3)]
     whee(1) => [('bob', 1), ('frank', 1)]
     """
-    args = [arg.arg for arg in func_def.args.args]
-    kw_only = [arg.arg for arg in func_def.args.kwonlyargs]
-    args = args + kw_only
-    if args[0] == 'self':
-        args.pop(0)
-
     items = map("('{0}', {0})".format, args)
     items_list = "[ {0} ]".format(', '.join(items))
     return items_list
