@@ -2,5 +2,5 @@
 
 pip install pandas
 pip install numpy
-pip install astor
+pip install git+https://github.com/berkerpeksag/astor.git
 pip install .
