@@ -164,7 +164,8 @@ def arg_name(arg):
         return arg.id
     if isinstance(arg, (ast.arg, ast.keyword)):
         return arg.arg
-    raise TypeError("Only accepts str, Name and arg")
+    raise TypeError("Only accepts str, Name and arg. "
+            "Received{0}".format(type(arg)))
 
 def arglist(node):
     try:
