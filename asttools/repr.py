@@ -21,7 +21,7 @@ def ast_source(obj):
     if isinstance(obj, ast.Expression):
         obj = obj.body
     source =  astor.to_source(obj)
-    return source
+    return source.strip()
 
 class IndentDumper:
     def visit(self, item):

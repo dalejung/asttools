@@ -1,9 +1,12 @@
 import ast
-import astor
 from unittest import TestCase
 from textwrap import dedent
 
 import nose.tools as nt
+
+from ..repr import (
+    ast_source,
+)
 
 from ..transform import (
     transform,
@@ -43,7 +46,7 @@ def test_data_renamer():
     renamer = DataRenamer()
     mod = ast.parse("bob = frank")
     transform(mod, renamer)
-    new_source = astor.to_source(mod)
+    new_source = ast_source(mod)
     nt.assert_equals(new_source, "data['bob'] = data['frank']")
 
 def test_func_renamer():
@@ -63,5 +66,5 @@ def test_func_renamer():
 
     mod = ast.parse("bob = frank")
     transform(mod, visitor)
-    new_source = astor.to_source(mod)
+    new_source = ast_source(mod)
     nt.assert_equals(new_source, "data['bob'] = data['frank']")
