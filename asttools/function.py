@@ -208,16 +208,18 @@ def ast_argspec(node):
     return ret
 
 def _ast_argspec_call(node):
-    args = [arg_name(arg) for arg in node.args]
-    kw = [(kw.arg, kw.value) for kw in node.keywords]
+    args, starargs = split_call_args(node)
+    keywords, kwargs = split_call_kwargs(node)
+
+    args = [arg_name(arg) for arg in args]
+    kw = [(kw.arg, kw.value) for kw in keywords]
+
     kw_args, kw_defaults = [], []
     if kw:
         kw_args, kw_defaults = zip(*kw)
     args = args + list(kw_args)
 
-    varargs = node.starargs and node.starargs.id
-    keywords = node.kwargs and node.kwargs.id
-    argspec = inspect.ArgSpec(args, varargs, keywords, kw_defaults)
+    argspec = inspect.ArgSpec(args, starargs, kwargs, kw_defaults)
     return argspec
 
 def _ast_argspec_def(node):
@@ -255,3 +257,68 @@ def add_call_starargs(node, name):
     starred = ast.Starred(value=value,
             ctx=ast.Load())
     node.args.append(starred)
+
+def get_call_starargs(node):
+    """
+    Get the stararg name from Call node.
+
+    Only supports the pre 3.5 semantic of a single *args at the end.
+    """
+    args = node.args
+    if not args:
+        return None
+    last = args[-1]
+    star_count = sum(map(lambda obj: isinstance(obj, ast.Starred), args))
+    if star_count > 1:
+        raise NotImplementedError("Currently only supports one stararg")
+
+    if not isinstance(last, ast.Starred):
+        return
+
+    if not isinstance(last.value, ast.Name):
+        raise ValueError("Only support starargs that unpack a variable")
+    return last.value.id
+
+def get_call_kwargs(node):
+    """
+    Get the kwargs name from Call node.
+    """
+    keywords = node.keywords
+    if len(keywords) == 0:
+        return None
+
+    # dunno if we can get more than one dict unpack in python 3.5
+    # check anyways
+    kwargs_count = sum(map(lambda obj: obj.arg is None, keywords))
+    if kwargs_count > 1:
+        raise NotImplementedError("Currently only supports one kwargs")
+
+    last = keywords[-1]
+    # keywords have arg = None
+    if not last.arg is None:
+        return None
+
+    if not isinstance(last.value, ast.Name):
+        raise ValueError("Only support starargs that unpack a variable")
+
+    return last.value.id
+
+def split_call_args(node):
+    """
+    Split Call.args into args and starargs
+    """
+    args = node.args
+    stararg = get_call_starargs(node)
+    if stararg:
+        args = args[:-1]
+    return args, stararg
+
+def split_call_kwargs(node):
+    """
+    Split Call.keywords into keywords and kwargs
+    """
+    keywords = node.keywords
+    kwargs = get_call_kwargs(node)
+    if kwargs:
+        keywords = keywords[:-1]
+    return keywords, kwargs

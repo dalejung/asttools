@@ -13,7 +13,9 @@ from ..function import (
     func_def_args,
     func_args_realizer,
     add_call_kwargs,
-    add_call_starargs
+    add_call_starargs,
+    get_call_starargs,
+    get_call_kwargs,
 )
 from ..transform import coroutine, transform
 from ..graph import iter_fields
@@ -248,9 +250,49 @@ def test_add_call_args():
     nt.assert_is_instance(call_node.keywords[1], ast.keyword)
     nt.assert_is_none(call_node.keywords[1].arg)
 
-call_text = """
-bob(l=1, m=2, kw3=3)
-"""
-code = quick_parse(call_text)
-call_node = code.value
-ast_argspec(call_node)
+def test_get_call_starargs():
+    call_text = """
+    bob(*bob, l=1, m=2, kw3=3, *args)
+    """
+    call_node = quick_parse(dedent(call_text)).value
+
+    with nt.assert_raises(NotImplementedError):
+        starargs = get_call_starargs(call_node)
+
+    call_text = """
+    bob(l=1, m=2, kw3=3, *args)
+    """
+    call_node = quick_parse(dedent(call_text)).value
+    starargs = get_call_starargs(call_node)
+    nt.assert_equal(starargs, 'args')
+
+    call_text = """
+    bob(l=1, m=2, kw3=3, *locals())
+    """
+    call_node = quick_parse(dedent(call_text)).value
+    with nt.assert_raises(ValueError):
+        starargs = get_call_starargs(call_node)
+
+def test_get_call_kwargs():
+    call_text = """
+    bob(l=1, m=2, kw3=3, *args, **dct)
+    """
+    call_node = quick_parse(dedent(call_text)).value
+
+    kw = get_call_kwargs(call_node)
+    nt.assert_equal(kw, 'dct')
+
+    call_text = """
+    bob(l=1, m=2, kw3=3, *args)
+    """
+    call_node = quick_parse(dedent(call_text)).value
+
+    kw = get_call_kwargs(call_node)
+    nt.assert_is_none(kw)
+
+    call_text = """
+    bob(l=1, m=2, kw3=3, **locals())
+    """
+    call_node = quick_parse(dedent(call_text)).value
+    with nt.assert_raises(ValueError):
+        starargs = get_call_kwargs(call_node)
