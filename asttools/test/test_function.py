@@ -6,7 +6,15 @@ from itertools import zip_longest, starmap
 import nose.tools as nt
 
 from .. import get_source, quick_parse, Matcher
-from ..function import create_function, func_rewrite, ast_argspec
+from ..function import (
+    create_function,
+    func_rewrite,
+    ast_argspec,
+    func_def_args,
+    func_args_realizer,
+    add_call_kwargs,
+    add_call_starargs
+)
 from ..transform import coroutine, transform
 from ..graph import iter_fields
 
@@ -52,7 +60,7 @@ def test_wrap():
             matcher = Matcher("'<any>'.capture()")
             while True:
                 if matcher.match(node):
-                    node.kwargs = quick_parse("locals()").value
+                    add_call_kwargs(node, quick_parse("locals()").value)
                     node.func.attr = 'format'
 
                 node, meta = yield node
@@ -185,3 +193,64 @@ def test_create_function_ignore_closure():
     Obj.__init__ = new_init
 
     nt.assert_true(Obj().new_init) # yay
+
+def test_func_def_args_realizer():
+    """
+    Test func_def_args and func_def_realizer
+    """
+    func_text = """
+    def bob(arg1, arg2, kw1=None, k2=1, *args, **kwargs):
+        pass
+    """
+    code = ast.parse(dedent(func_text))
+    func_def = code.body[0]
+
+    args = func_def_args(func_def)
+    nt.assert_list_equal(args, ['arg1', 'arg2', 'kw1', 'k2', 'args', 'kwargs'])
+
+    func_text = """
+    def bob(arg1, arg2, kw1=None, kw2=1, **dale):
+        return realizer
+    """
+    code = ast.parse(dedent(func_text))
+    func_def = code.body[0]
+
+    args = func_def_args(func_def)
+    nt.assert_list_equal(args, ['arg1', 'arg2', 'kw1', 'kw2', 'dale'])
+
+    # create a realizer and create a func that returns it
+    realizer = func_args_realizer(args)
+    func = create_function(dedent(func_text.replace('realizer', realizer)))
+    result = func(1, 2, extra1=1, extra2=2)
+    nt.assert_equal(result[0], ('arg1', 1))
+    nt.assert_equal(result[1], ('arg2', 2))
+    nt.assert_equal(result[2], ('kw1', None))
+    nt.assert_equal(result[3], ('kw2', 1))
+    nt.assert_equal(result[4], ('dale', {'extra1': 1, 'extra2': 2}))
+
+def test_add_call_args():
+    """
+    Adding starargs and kwargs to Call nodes.
+
+    Python 3.4 and 3.5 have different structures
+    """
+    call_text = """
+    bob(1, 2, kw3=3)
+    """
+    code = ast.parse(dedent(call_text))
+    call_node = code.body[0].value
+    add_call_starargs(call_node, 'stardale')
+    add_call_kwargs(call_node, 'dale')
+
+    nt.assert_is_instance(call_node.args[2], ast.Starred)
+    nt.assert_equal(call_node.args[2].value.id, 'stardale')
+
+    nt.assert_is_instance(call_node.keywords[1], ast.keyword)
+    nt.assert_is_none(call_node.keywords[1].arg)
+
+call_text = """
+bob(l=1, m=2, kw3=3)
+"""
+code = quick_parse(call_text)
+call_node = code.value
+ast_argspec(call_node)

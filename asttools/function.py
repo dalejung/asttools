@@ -63,6 +63,7 @@ def create_function(code, func=None,
         module.body = [class_def]
         grabber = lambda ns, func_name: getattr(ns['klass'], func_name)
 
+    module = ast.fix_missing_locations(module)
     module_obj = compile(module, filename, 'exec')
 
     ns = {}
@@ -139,6 +140,11 @@ def func_def_args(func_def):
     args = [arg.arg for arg in func_def.args.args]
     kw_only = [arg.arg for arg in func_def.args.kwonlyargs]
     args = args + kw_only
+    if func_def.args.vararg:
+        args.append(func_def.args.vararg.arg)
+    if func_def.args.kwarg:
+        args.append(func_def.args.kwarg.arg)
+
     if args[0] == 'self':
         args.pop(0)
     return args
@@ -147,6 +153,7 @@ def func_args_realizer(args):
     """
     Using an ast.FunctionDef node, create a items list node that
     will give us the passed in args by name.
+
     def whee(bob, frank=1):
         pass
 
@@ -160,6 +167,8 @@ def func_args_realizer(args):
 def arg_name(arg):
     if isinstance(arg, str):
         return arg
+    if isinstance(arg, ast.Starred):
+        return arg_name(arg.value)
     if isinstance(arg, ast.Name):
         return arg.id
     if isinstance(arg, (ast.arg, ast.keyword)):
@@ -219,3 +228,30 @@ def _ast_argspec_def(node):
     keywords = node.args.kwarg and node.args.kwarg.arg
     argspec = inspect.ArgSpec(args, varargs, keywords, kw_defaults)
     return argspec
+
+
+def add_call_kwargs(node, name):
+    """
+    add a **name kwarg to call node. python3.5 doesn't have kwarg.
+    It instead just uses a keyword with an empty arg
+    """
+    value = name
+    if isinstance(name, str):
+        value = ast.Name(id=name, ctx=ast.Load())
+
+    keyword = ast.keyword(arg=None, value=value)
+    node.keywords.append(keyword)
+
+
+def add_call_starargs(node, name):
+    """
+    add a *name stararg to call node. python3.5 doesn't have stararg.
+    It uses a ast.Starred in the args list
+    """
+    value = name
+    if isinstance(name, str):
+        value = ast.Name(id=name, ctx=ast.Load())
+
+    starred = ast.Starred(value=value,
+            ctx=ast.Load())
+    node.args.append(starred)
