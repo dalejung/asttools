@@ -3,8 +3,7 @@ import ast
 from textwrap import dedent
 from itertools import zip_longest, starmap
 
-import nose.tools as nt
-
+from nose.tools import *
 from .. import get_source, quick_parse, Matcher
 from ..function import (
     create_function,
@@ -23,8 +22,8 @@ from ..graph import iter_fields
 def test_create_function():
     # grab ast.walk
     new_func = create_function("def walk(): return 10", ast.walk)
-    nt.assert_equals(new_func.__module__, 'ast') # module is retained
-    nt.assert_equals(new_func(), 10)
+    assert_equals(new_func.__module__, 'ast') # module is retained
+    assert_equals(new_func(), 10)
 
 
     def some_func(bob):
@@ -34,24 +33,24 @@ def test_create_function():
     code.body[0].body.insert(0, quick_parse("bob += 5"))
     add_5 = create_function(code, func=some_func)
 
-    nt.assert_equals(some_func(10), 10)
-    nt.assert_equals(add_5(10), 15)
+    assert_equals(some_func(10), 10)
+    assert_equals(add_5(10), 15)
 
 def test_create_function_globals():
     new_func = create_function("def walk(): return AST", ast.walk)
     # should grab AST form the ast.walk global namespace
-    nt.assert_is(new_func(), ast.AST)
+    assert_is(new_func(), ast.AST)
 
     new_func2 = create_function("def walk(): return AST", ast.walk,
                                 globals={'AST':1})
-    nt.assert_equal(new_func2(), 1)
+    assert_equal(new_func2(), 1)
 
 def test_create_function_source():
     source = "def walk(): return AST"
     new_func = create_function(source, ast.walk)
     correct = ast.parse(source)
     test = ast.parse(new_func.__asttools_source__)
-    nt.assert_equal(ast.dump(test), ast.dump(correct))
+    assert_equal(ast.dump(test), ast.dump(correct))
     # should grab AST form the ast.walk global namespace
 
 def test_wrap():
@@ -74,18 +73,18 @@ def test_wrap():
         end = 'goodbye'
         return "hello {obj}... {end}".capture()
 
-    nt.assert_equal(hello('bob'), 'hello bob... goodbye')
+    assert_equal(hello('bob'), 'hello bob... goodbye')
 
 
 def test_matcher_with():
     matcher = Matcher("with capture(): _any_")
     test_code = ast.parse("with capture(): pass")
-    nt.assert_true(matcher.match(test_code.body[0]))
+    assert_true(matcher.match(test_code.body[0]))
 
     # remove any sentinel
     matcher = Matcher("with capture(): 1")
     test_code = ast.parse("with capture(): pass")
-    nt.assert_false(matcher.match(test_code.body[0]))
+    assert_false(matcher.match(test_code.body[0]))
 
 def ast_argspec_case(source):
     code = ast.parse(dedent(source))
@@ -146,7 +145,7 @@ def test_argsepc_equal():
 
     func(arg1, arg2=1)
     """
-    with nt.assert_raises(AssertionError):
+    with assert_raises(AssertionError):
         ast_argspec_case(source)
 
 def test_create_function_method_super():
@@ -164,14 +163,14 @@ def test_create_function_method_super():
         self.new_init = True
 
     Obj.__init__ = _init
-    with nt.assert_raises(RuntimeError):
+    with assert_raises(RuntimeError):
         # bah, we didn't account for the super() cell
         Obj()
     source = get_source(_init)
 
     new_init = create_function(source, Obj.old_init)
     Obj.__init__ = new_init
-    nt.assert_true(Obj().new_init) # yay
+    assert_true(Obj().new_init) # yay
 
 def test_create_function_ignore_closure():
     """
@@ -187,14 +186,14 @@ def test_create_function_ignore_closure():
         self.new_init = True
 
     source = get_source(_init)
-    with nt.assert_raises_regex(ValueError, "requires closure of length 0"):
+    with assert_raises_regex(ValueError, "requires closure of length 0"):
         new_init = create_function(source, Obj.old_init)
         # fails
 
     new_init = create_function(source, Obj.old_init, ignore_closure=True)
     Obj.__init__ = new_init
 
-    nt.assert_true(Obj().new_init) # yay
+    assert_true(Obj().new_init) # yay
 
 def test_func_def_args_realizer():
     """
@@ -208,7 +207,7 @@ def test_func_def_args_realizer():
     func_def = code.body[0]
 
     args = func_def_args(func_def)
-    nt.assert_list_equal(args, ['arg1', 'arg2', 'kw1', 'k2', 'args', 'kwargs'])
+    assert_list_equal(args, ['arg1', 'arg2', 'kw1', 'k2', 'args', 'kwargs'])
 
     func_text = """
     def bob(arg1, arg2, kw1=None, kw2=1, **dale):
@@ -218,17 +217,17 @@ def test_func_def_args_realizer():
     func_def = code.body[0]
 
     args = func_def_args(func_def)
-    nt.assert_list_equal(args, ['arg1', 'arg2', 'kw1', 'kw2', 'dale'])
+    assert_list_equal(args, ['arg1', 'arg2', 'kw1', 'kw2', 'dale'])
 
     # create a realizer and create a func that returns it
     realizer = func_args_realizer(args)
     func = create_function(dedent(func_text.replace('realizer', realizer)))
     result = func(1, 2, extra1=1, extra2=2)
-    nt.assert_equal(result[0], ('arg1', 1))
-    nt.assert_equal(result[1], ('arg2', 2))
-    nt.assert_equal(result[2], ('kw1', None))
-    nt.assert_equal(result[3], ('kw2', 1))
-    nt.assert_equal(result[4], ('dale', {'extra1': 1, 'extra2': 2}))
+    assert_equal(result[0], ('arg1', 1))
+    assert_equal(result[1], ('arg2', 2))
+    assert_equal(result[2], ('kw1', None))
+    assert_equal(result[3], ('kw2', 1))
+    assert_equal(result[4], ('dale', {'extra1': 1, 'extra2': 2}))
 
 def test_add_call_args():
     """
@@ -244,11 +243,11 @@ def test_add_call_args():
     add_call_starargs(call_node, 'stardale')
     add_call_kwargs(call_node, 'dale')
 
-    nt.assert_is_instance(call_node.args[2], ast.Starred)
-    nt.assert_equal(call_node.args[2].value.id, 'stardale')
+    assert_is_instance(call_node.args[2], ast.Starred)
+    assert_equal(call_node.args[2].value.id, 'stardale')
 
-    nt.assert_is_instance(call_node.keywords[1], ast.keyword)
-    nt.assert_is_none(call_node.keywords[1].arg)
+    assert_is_instance(call_node.keywords[1], ast.keyword)
+    assert_is_none(call_node.keywords[1].arg)
 
 def test_get_call_starargs():
     call_text = """
@@ -256,7 +255,7 @@ def test_get_call_starargs():
     """
     call_node = quick_parse(dedent(call_text)).value
 
-    with nt.assert_raises(NotImplementedError):
+    with assert_raises(NotImplementedError):
         starargs = get_call_starargs(call_node)
 
     call_text = """
@@ -264,13 +263,13 @@ def test_get_call_starargs():
     """
     call_node = quick_parse(dedent(call_text)).value
     starargs = get_call_starargs(call_node)
-    nt.assert_equal(starargs, 'args')
+    assert_equal(starargs, 'args')
 
     call_text = """
     bob(l=1, m=2, kw3=3, *locals())
     """
     call_node = quick_parse(dedent(call_text)).value
-    with nt.assert_raises(ValueError):
+    with assert_raises(ValueError):
         starargs = get_call_starargs(call_node)
 
 def test_get_call_kwargs():
@@ -280,7 +279,7 @@ def test_get_call_kwargs():
     call_node = quick_parse(dedent(call_text)).value
 
     kw = get_call_kwargs(call_node)
-    nt.assert_equal(kw, 'dct')
+    assert_equal(kw, 'dct')
 
     call_text = """
     bob(l=1, m=2, kw3=3, *args)
@@ -288,11 +287,11 @@ def test_get_call_kwargs():
     call_node = quick_parse(dedent(call_text)).value
 
     kw = get_call_kwargs(call_node)
-    nt.assert_is_none(kw)
+    assert_is_none(kw)
 
     call_text = """
     bob(l=1, m=2, kw3=3, **locals())
     """
     call_node = quick_parse(dedent(call_text)).value
-    with nt.assert_raises(ValueError):
+    with assert_raises(ValueError):
         starargs = get_call_kwargs(call_node)

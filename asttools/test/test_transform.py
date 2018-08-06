@@ -2,7 +2,7 @@ import ast
 from unittest import TestCase
 from textwrap import dedent
 
-import nose.tools as nt
+from nose.tools import *
 
 from ..repr import (
     ast_source,
@@ -28,8 +28,8 @@ def test_name_rename():
     bob_node = mod.body[0].targets[0]
     frank_node = mod.body[0].value
 
-    nt.assert_equals(bob_node.id, "bob_visited")
-    nt.assert_equals(frank_node.id, "frank_visited")
+    assert_equals(bob_node.id, "bob_visited")
+    assert_equals(frank_node.id, "frank_visited")
 
 def test_data_renamer():
     class DataRenamer(NodeTransformer):
@@ -47,7 +47,7 @@ def test_data_renamer():
     mod = ast.parse("bob = frank")
     transform(mod, renamer)
     new_source = ast_source(mod)
-    nt.assert_equals(new_source, "data['bob'] = data['frank']")
+    assert_equals(new_source, "data['bob'] = data['frank']")
 
 def test_func_renamer():
     """
@@ -67,4 +67,4 @@ def test_func_renamer():
     mod = ast.parse("bob = frank")
     transform(mod, visitor)
     new_source = ast_source(mod)
-    nt.assert_equals(new_source, "data['bob'] = data['frank']")
+    assert_equals(new_source, "data['bob'] = data['frank']")
