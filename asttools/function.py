@@ -1,6 +1,5 @@
 import ast
 import inspect
-import nose.tools as nt
 import types
 
 from .common import get_source, quick_parse
