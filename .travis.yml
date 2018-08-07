@@ -1,7 +1,7 @@
 language: python
 
 python:
-  - "3.5"
+  - "3.7"
 
 # command to install dependencies
 install:
@@ -9,5 +9,5 @@ install:
 
 
 # command to run tests
-script: nosetests
+script: pytest
 sudo: false
