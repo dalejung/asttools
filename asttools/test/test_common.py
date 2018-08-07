@@ -12,4 +12,4 @@ def test_get_source_create_function():
     test = ast.parse(get_source(func))
     correct = ast.parse(code)
 
-    assert_equal(ast.dump(test), ast.dump(correct))
+    assert ast.dump(test) == ast.dump(correct)

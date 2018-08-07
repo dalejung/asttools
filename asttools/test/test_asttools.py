@@ -4,7 +4,9 @@ from textwrap import dedent
 
 import pandas as pd
 import numpy as np
-from nose.tools import *
+
+import collections
+import pytest
 
 from asttools import (
     _eval,
@@ -28,8 +30,8 @@ class TestEval(TestCase):
         code = ast.parse(dedent(source))
         ns = {}
         out = _exec(code.body[0], ns)
-        assert_equal(ns['d'], 123)
-        assert_is_none(out)
+        assert ns['d'] == 123
+        assert out is None
 
         # eval versio of exec
         source = """
@@ -38,7 +40,7 @@ class TestEval(TestCase):
         code = ast.parse(dedent(source))
         ns = {}
         out = _exec(code.body[0], ns)
-        assert_equal(out, 123)
+        assert out == 123
 
     def test_eval(self):
         """
@@ -49,7 +51,7 @@ class TestEval(TestCase):
         """
         code = ast.parse(dedent(source))
         ns = {}
-        with assert_raises(Exception):
+        with pytest.raises(Exception):
             out = _eval(code.body[0], ns)
 
 def test_ast_source_expression():
@@ -58,7 +60,7 @@ def test_ast_source_expression():
     code = ast.parse(dedent(source))
 
     expr = _convert_to_expression(code)
-    assert_equal(source, ast_source(expr))
+    assert source == ast_source(expr)
 
 
 def test_ast_equal():
@@ -68,17 +70,17 @@ def test_ast_equal():
     source2 = """test(np.random.randn(10, 10))"""
     code2 = ast.parse(source2, mode='eval')
 
-    assert_true(ast_equal(code1, code2))
+    assert ast_equal(code1, code2)
 
     source3 = """test(np.random.randn(10, 11))"""
     code3 = ast.parse(source3, mode='eval')
-    assert_false(ast_equal(code1, code3))
+    assert not ast_equal(code1, code3)
 
     # try subset
     source4 = """np.random.randn(10, 11)"""
     code4 = ast.parse(source4, mode='eval')
 
-    assert_true(ast_equal(code3.body.args[0], code4.body))
+    assert ast_equal(code3.body.args[0], code4.body)
 
 
 def test_ast_contains():
@@ -87,25 +89,25 @@ def test_ast_contains():
 
     source2 = """np.random.randn(10, 11)"""
     test = ast.parse(source2, mode='eval').body
-    assert_true(list(ast_contains(code1, test))[0])
+    assert list(ast_contains(code1, test))[0]
 
     test = ast.parse("10", mode='eval').body
-    assert_true(list(ast_contains(code1, test))[0])
+    assert list(ast_contains(code1, test))[0]
 
     test = ast.parse("test2", mode='eval').body
-    assert_true(list(ast_contains(code1, test))[0])
+    assert list(ast_contains(code1, test))[0]
 
     test = ast.parse("np.random.randn", mode='eval').body
-    assert_true(list(ast_contains(code1, test))[0])
+    assert list(ast_contains(code1, test))[0]
 
     test = ast.parse("test2/99", mode='eval').body
-    assert_true(list(ast_contains(code1, test))[0])
+    assert list(ast_contains(code1, test))[0]
 
     # False. Not that this isn't about a textual subset.
     # random.randn means nothing without np. it implies a 
     # top level random module
     test = ast.parse("random.randn", mode='eval').body
-    assert_false(list(ast_contains(code1, test)))
+    assert not list(ast_contains(code1, test))
 
     # test against a module.
     source = """
@@ -116,7 +118,7 @@ def test_ast_contains():
 
     source2 = """np.random.randn(10, 11)"""
     test = ast.parse(source2, mode='eval').body
-    assert_true(list(ast_contains(mod, test))[0])
+    assert list(ast_contains(mod, test))[0]
 
 def test_ast_contains_expression():
     """
@@ -132,10 +134,10 @@ def test_ast_contains_expression():
     # expression compiled as module work sfine
     source2 = """np.random.randn(10, 11)"""
     test = ast.parse(source2)
-    assert_true(list(ast_contains(mod, test))[0])
+    assert list(ast_contains(mod, test))[0]
 
     # assignment is a nono
-    with assert_raises_regexp(Exception, "Fragment must be an expression"):
+    with pytest.raises(Exception, match="Fragment must be an expression"):
         source2 = """a = np.random.randn(10, 11)"""
         test = ast.parse(source2)
         list(ast_contains(mod, test))
@@ -150,17 +152,17 @@ def test_ast_contains_ignore_names():
     # rename np to test
     source2 = """test.random.randn(10, 11)"""
     test = ast.parse(source2)
-    assert_true(list(ast_contains(mod, test, ignore_var_names=True))[0])
+    assert list(ast_contains(mod, test, ignore_var_names=True))[0]
 
     # note that only Load(ctx.Load) ids will be ignored
     source2 = """test.text"""
     test = ast.parse(source2)
-    assert_false(list(ast_contains(mod, test, ignore_var_names=True)))
+    assert not list(ast_contains(mod, test, ignore_var_names=True))
 
     # dumb example. single Name will always match
     source2 = """anything"""
     test = ast.parse(source2)
-    assert_true(list(ast_contains(mod, test, ignore_var_names=True))[0])
+    assert list(ast_contains(mod, test, ignore_var_names=True))[0]
 
 def test_ast_contains_ignore_names_multi():
     """
@@ -175,7 +177,7 @@ def test_ast_contains_ignore_names_multi():
     source2 = """(x + y)"""
     test = ast.parse(source2)
     matches = list(ast_contains(mod, test, ignore_var_names=True))
-    assert_equal(len(matches), 3)
+    assert len(matches) == 3
 
 def test_ast_graph_walk():
     source = """
@@ -188,10 +190,10 @@ def test_ast_graph_walk():
 
     walk_nodes = list(ast.walk(mod))
     # remove module node which the graph_walk won't have
-    assert_is_instance(walk_nodes.pop(0), ast.Module)
+    assert isinstance(walk_nodes.pop(0), ast.Module)
 
     # we should have reached the same nodes, not in same order
-    assert_count_equal(graph_nodes, walk_nodes)
+    assert collections.Counter(graph_nodes) == collections.Counter(walk_nodes)
 
     graph_types = [
         ast.Load,
@@ -210,7 +212,7 @@ def test_ast_graph_walk():
     ]
 
     # using type order to check that the type ordering is stable..
-    assert_list_equal(list(map(type, graph_nodes)), graph_types)
+    assert list(map(type, graph_nodes)) == graph_types
 
 def test_code_context_subset():
     df = pd.DataFrame(np.random.randn(30, 3), columns=['a', 'bob', 'c'])
@@ -228,24 +230,24 @@ def test_code_context_subset():
     child_ns['blah'] = ns['df']
     child_code = ast.parse("np.log(blah+10)") # note that df was renamed blah
 
-    assert_false(list(code_context_subset(code, ns, child_code, child_ns,
-                                        ignore_var_names=False)))
+    assert not list(code_context_subset(code, ns, child_code, child_ns,
+                                        ignore_var_names=False))
 
     # ignoring the var names should get us our match
     items = code_context_subset(code, ns, child_code, child_ns,
                             ignore_var_names=True)
     items = list(items)
     item = items[0]
-    assert_equal(len(items), 1)
-    assert_is_not_none(item)
+    assert len(items) == 1
+    assert item is not None
 
     field_name = 'args'
     field_index = 0
     correct = getattr(code.body, field_name)[field_index]
-    assert_is(item['node'], correct)
-    assert_is(item['parent'], code.body)
-    assert_equal(item['field_name'], field_name)
-    assert_equal(item['field_index'], field_index)
+    assert item['node'] is correct
+    assert item['parent'] is code.body
+    assert item['field_name'] == field_name
+    assert item['field_index'] == field_index
 
 def test_code_context_subset_by_value():
     """
@@ -276,7 +278,7 @@ def test_code_context_subset_by_value():
                                         ignore_var_names=True))
 
     # matches first group by value
-    assert_equal(ast_source(res[0]['node']), '(a + b)')
+    assert ast_source(res[0]['node']) == '(a + b)'
 
     # try to match second group
     child_ns = {
@@ -286,7 +288,7 @@ def test_code_context_subset_by_value():
     res = list(code_context_subset(code, ns, child_code, child_ns,
                                         ignore_var_names=True))
     # matched the second group
-    assert_equal(ast_source(res[0]['node']), '(c + d)')
+    assert ast_source(res[0]['node']) == '(c + d)'
 
 def test_code_context_subset_match_multi():
     # try to match multiple groups
@@ -311,14 +313,14 @@ def test_code_context_subset_match_multi():
 
     test = list(map(lambda x: ast_source(x['node']), res))
     correct = ['(a + b)', '(c + d)']
-    assert_count_equal(test, correct)
+    assert collections.Counter(test) == collections.Counter(correct)
 
 def test_generate_getter_var():
     key = object()
     correct = 10
     node, ns = generate_getter_var(key, correct)
     val = _eval(node, ns)
-    assert_equal(val, correct)
+    assert val == correct
 
 def test_generate_getter_lazy():
     class FakeManifest:
@@ -332,12 +334,12 @@ def test_generate_getter_lazy():
     manifest = FakeManifest(correct)
     node, ns = generate_getter_lazy(manifest)
     val = _eval(node, ns)
-    assert_equal(val, correct)
+    assert val == correct
 
 def test_node_location():
     loc = NodeLocation(object(), 1, 2)
-    assert_count_equal(loc.keys(), ['parent', 'field_name', 'field_index'])
-    assert_count_equal(dict(loc), ['parent', 'field_name', 'field_index'])
+    assert collections.Counter(loc.keys()) == collections.Counter(['parent', 'field_name', 'field_index'])
+    assert collections.Counter(list(dict(loc))) == collections.Counter(['parent', 'field_name', 'field_index'])
 
 source = """
 test(np.random.randn(10, 11))
