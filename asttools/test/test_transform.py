@@ -1,8 +1,5 @@
 import ast
-from unittest import TestCase
 from textwrap import dedent
-
-from nose.tools import *
 
 from ..repr import (
     ast_source,

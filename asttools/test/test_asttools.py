@@ -1,7 +1,9 @@
 import ast
-from unittest import TestCase
 from textwrap import dedent
 
+# TODO
+# the pandas/numpy tests were written since that what was I originally
+# testing on. They should optional so tests don't depend on them
 import pandas as pd
 import numpy as np
 
@@ -20,9 +22,10 @@ from asttools import (
     generate_getter_lazy,
     graph_walk
 )
+
 from ..graph import NodeLocation
 
-class TestEval(TestCase):
+class TestEval:
     def test_exec(self):
         source = """
         d = 123

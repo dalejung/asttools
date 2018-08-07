@@ -1,8 +1,9 @@
-from nose.tools import *
 from textwrap import dedent
 
 from ..matcher import Matcher
 from ..common import quick_parse
+
+import pytest
 
 class AM:
     def __init__(self, template):
@@ -36,7 +37,7 @@ def test_with():
     matcher.assert_match(test)
 
     # test negative match
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         matcher = AM("with(bob): not_wildcarded")
         matcher.assert_match(test)
 
@@ -56,7 +57,7 @@ def test_call():
     matcher << "test_call(bob, whee=1, *args, **kwargs)"
 
     # test negative match
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         matcher << "other_call(bob, whee)"
 
     AM("test_call(bob)") << "test_call(bob)"
@@ -66,12 +67,12 @@ def test_attribute():
     matcher << "test.anything"
     matcher << "test.hello"
     AM("test.specific_attribute") << "test.specific_attribute"
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("test.specific_attribute") << "test.other"
 
     # node value
     AM("_any_.frank") << "test.frank"
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("_any_.frank") << "test.bob"
 
 def test_subscript():
@@ -79,32 +80,32 @@ def test_subscript():
     AM("meta[_any_]") << "meta[1]"
     AM("meta[dale]") << "meta[dale]"
     AM("print(meta[dale])") << "print(meta[dale])"
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("meta[1]") << "meta[bob, frank:1]"
 
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("print(meta[dale])") << "other(meta[dale])"
 
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("other[1]") << "test[1]"
 
 def test_unary_op():
     AM("~_any_") << "~testme"
     AM("~testme") << "~testme"
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("~testme") << "~testme3333"
 
 def test_binary_op():
     AM("dale | _any_") << "dale | 123"
     AM("_any_ | _any_") << "fooo | m[123]"
     # mismatched operand
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("_any_ | _any_") << "fooo + m[123]"
 
     # left off
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("dale | _any_") << "fooo | m[123]"
 
     # right off
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         AM("_any_ | test") << "fooo | m[123]"

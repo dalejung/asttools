@@ -3,7 +3,8 @@ import ast
 from textwrap import dedent
 from itertools import zip_longest, starmap
 
-from nose.tools import *
+import pytest
+
 from .. import get_source, quick_parse, Matcher
 from ..function import (
     create_function,
@@ -145,7 +146,7 @@ def test_argsepc_equal():
 
     func(arg1, arg2=1)
     """
-    with assert_raises(AssertionError):
+    with pytest.raises(AssertionError):
         ast_argspec_case(source)
 
 def test_create_function_method_super():
@@ -163,7 +164,7 @@ def test_create_function_method_super():
         self.new_init = True
 
     Obj.__init__ = _init
-    with assert_raises(RuntimeError):
+    with pytest.raises(RuntimeError):
         # bah, we didn't account for the super() cell
         Obj()
     source = get_source(_init)
@@ -186,7 +187,7 @@ def test_create_function_ignore_closure():
         self.new_init = True
 
     source = get_source(_init)
-    with assert_raises_regex(ValueError, "requires closure of length 0"):
+    with pytest.raises(ValueError, match="requires closure of length 0"):
         new_init = create_function(source, Obj.old_init)
         # fails
 
@@ -255,7 +256,7 @@ def test_get_call_starargs():
     """
     call_node = quick_parse(dedent(call_text)).value
 
-    with assert_raises(NotImplementedError):
+    with pytest.raises(NotImplementedError):
         starargs = get_call_starargs(call_node)
 
     call_text = """
@@ -269,7 +270,7 @@ def test_get_call_starargs():
     bob(l=1, m=2, kw3=3, *locals())
     """
     call_node = quick_parse(dedent(call_text)).value
-    with assert_raises(ValueError):
+    with pytest.raises(ValueError):
         starargs = get_call_starargs(call_node)
 
 def test_get_call_kwargs():
@@ -293,5 +294,5 @@ def test_get_call_kwargs():
     bob(l=1, m=2, kw3=3, **locals())
     """
     call_node = quick_parse(dedent(call_text)).value
-    with assert_raises(ValueError):
+    with pytest.raises(ValueError):
         starargs = get_call_kwargs(call_node)

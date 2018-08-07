@@ -1,6 +1,5 @@
 import ast
 
-from nose.tools import *
 from ..common import get_source
 from ..function import create_function
 
