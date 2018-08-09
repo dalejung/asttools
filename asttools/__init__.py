@@ -20,7 +20,14 @@ from .common import (
 )
 from .graph import graph_walk
 from .transform import NodeTransformer, transform, coroutine
-from .function import func_rewrite, create_function, func_code, ast_argspec
+from .function import (
+    func_rewrite,
+    create_function,
+    func_code,
+    ast_argspec,
+    get_invoked_args
+)
+
 from .matcher import Matcher
 
 def reload_locals(frame):

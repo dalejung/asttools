@@ -20,6 +20,9 @@ from ..function import (
 from ..transform import coroutine, transform
 from ..graph import iter_fields
 
+from .util import run_in_place, preamble
+preamble()
+
 def test_create_function():
     # grab ast.walk
     new_func = create_function("def walk(): return 10", ast.walk)
@@ -196,6 +199,17 @@ def test_create_function_ignore_closure():
 
     assert Obj().new_init # yay
 
+def test_func_def_args():
+    func_text = """
+    def bob(arg1, arg2, kw1=None, k2=1, *args, **kwargs):
+        pass
+    """
+    code = ast.parse(dedent(func_text))
+    func_def = code.body[0]
+
+    args = func_def_args(func_def)
+    assert args == ['arg1', 'arg2', 'kw1', 'k2', 'args', 'kwargs']
+
 def test_func_def_args_realizer():
     """
     Test func_def_args and func_def_realizer
@@ -218,6 +232,7 @@ def test_func_def_args_realizer():
     func_def = code.body[0]
 
     args = func_def_args(func_def)
+    print(args)
     assert args == ['arg1', 'arg2', 'kw1', 'kw2', 'dale']
 
     # create a realizer and create a func that returns it

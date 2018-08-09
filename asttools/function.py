@@ -1,6 +1,9 @@
 import ast
 import inspect
 import types
+from typing import List
+
+from earthdragon.typecheck import typecheck
 
 from .common import get_source, quick_parse
 from .repr import ast_source
@@ -135,7 +138,8 @@ def get_invoked_args(argspec, *args, **kwargs):
     res.update(realized_args)
     return res
 
-def func_def_args(func_def):
+@typecheck
+def func_def_args(func_def: ast.FunctionDef) -> List[str]:
     args = [arg.arg for arg in func_def.args.args]
     kw_only = [arg.arg for arg in func_def.args.kwonlyargs]
     args = args + kw_only
