@@ -1,4 +1,5 @@
 from textwrap import dedent
+import ast
 
 from ..matcher import Matcher
 from ..common import quick_parse
@@ -76,6 +77,10 @@ def test_attribute():
         AM("_any_.frank") << "test.bob"
 
 def test_subscript():
+    # as of 3.9 simple indices like _any_ are represented by their value.
+    # Previously this was wrapped in a ast.Index instance.
+    assert isinstance(Matcher("meta[_any_]").template.slice, ast.Name)
+
     AM("meta[_any_]") << "meta[bob, frank:1]"
     AM("meta[_any_]") << "meta[1]"
     AM("meta[dale]") << "meta[dale]"

@@ -67,7 +67,7 @@ class Matcher:
                     other_child = getattr(other, field_name)
                 else:
                     other_child = getattr(other, field_name)[field_index]
-            except (AttributeError, KeyError, IndexError):
+            except (AttributeError, KeyError, IndexError) as e:
                 return False
 
             if field_name in skip:
@@ -118,8 +118,14 @@ class Matcher:
     def match_Subscript(self, other, node):
         sl = node.slice
         skip = ()
+
+        # ast.Index is scheduled for deprecation
         if isinstance(sl, ast.Index) and isinstance(sl.value, ast.Name)\
            and sl.value.id == '_any_':
+            skip = ('slice')
+
+        # python 3.9 now represents simple indices by their values.
+        if isinstance(sl, ast.Name) and sl.id == '_any_':
             skip = ('slice')
 
         return self.match_children(other, node, skip=skip)
