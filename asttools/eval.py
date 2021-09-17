@@ -23,13 +23,13 @@ def _eval(node, ns):
         raise Exception("{0} cannot be evaled".format(repr(node)))
     return _exec(node, ns)
 
+
 def _compile(node, force_eval=False, filename="<asttools>"):
     node = ast.fix_missing_locations(node)
 
     mode = 'exec'
     if not isinstance(node, ast.Module):
-        module = ast.Module()
-        module.body = [node]
+        module = ast.Module([node], type_ignores=[])
 
     # try expression eval
     expr = _convert_to_expression(node)
