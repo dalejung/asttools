@@ -11,6 +11,10 @@ for node in ast.walk(test):
         node.kwargs = quick_parse("locals()").value
         node.func.attr = 'format'
 """
+
+_missing = object()
+
+
 def is_any(val):
     # string match
     if val in ['<any>', '_any_']:
@@ -24,7 +28,7 @@ def is_any(val):
         return True
     return False
 
-_missing = object()
+
 class Matcher:
     def __init__(self, template):
         if isinstance(template, str):
@@ -32,9 +36,13 @@ class Matcher:
             if isinstance(template, ast.Expr):
                 template = template.value
         self.template = template
+        self.logs = []
+
+    def log(self, *entry):
+        self.logs.append(entry)
 
     def match(self, other, node=_missing):
-        if node is _missing: # first run
+        if node is _missing:  # first run
             node = self.template
             # unwrap expression
             if isinstance(other, ast.Expr):
@@ -42,7 +50,11 @@ class Matcher:
 
         method = 'match_' + node.__class__.__name__
         matcher = getattr(self, method, self.generic_match)
+
         node_item = matcher(other, node)
+
+        self.log('MATCHER', matcher.__name__, node, other)
+
         return node_item
 
     def generic_match(self, other, node):
@@ -74,14 +86,37 @@ class Matcher:
                 continue
 
             # children did not match, short circuit out of here
-            if not self.match(other_child, item):
+            matched = self.match(other_child, item)
+
+            self.log(
+                'match_children',
+                other_child,
+                item,
+                f'{field_name}[{field_index}], matched: {matched}',
+            )
+
+            if not matched:
                 return False
         return True
 
-    def match_Str(self, other, node):
+    def match_Name(self, other, node):
+        """
+        TODO: determine if this is too broad. Previously I only matched
+        ast.Name if it was a child in certain spots i.e. Attribute / Call.
+
+        Things get weird like below:
+        Matcher("_any_") == "frank()[dale]"
+
+        Since _any_ is top level, it whitelists anything it compares to.
+        """
+        if is_any(node.id):
+            return True
+        return self.match_children(other, node)
+
+    def match_Constant(self, other, node):
         if is_any(node.s):
             return True
-        return node.s == other.s
+        return self.match_children(other, node)
 
     def match_Attribute(self, other, node):
         skip = ()
@@ -94,6 +129,7 @@ class Matcher:
 
     def match_Call(self, other, node):
         """
+        TODO: should support partial match?
         call(_any_)
         """
         skip = ()
@@ -110,7 +146,7 @@ class Matcher:
         body = node.body
         line = body[0]
         if len(body) == 1 and isinstance(line, ast.Expr) \
-        and is_any(line.value):
+           and is_any(line.value):
             skip = ('body')
 
         return self.match_children(other, node, skip=skip)
