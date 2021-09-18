@@ -14,6 +14,7 @@ def _exec(node, ns):
     res = eval(code, ns)
     return res
 
+
 def _eval(node, ns):
     """
     Will eval an ast Node within a namespace.

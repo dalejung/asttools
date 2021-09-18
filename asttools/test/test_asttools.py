@@ -25,6 +25,7 @@ from asttools import (
 
 from ..graph import NodeLocation
 
+
 class TestEval:
     def test_exec(self):
         source = """
@@ -56,6 +57,7 @@ class TestEval:
         ns = {}
         with pytest.raises(Exception):
             out = _eval(code.body[0], ns)
+
 
 def test_ast_source_expression():
     """ expressions were having a problem in astor """
@@ -181,6 +183,7 @@ def test_ast_contains_ignore_names_multi():
     test = ast.parse(source2)
     matches = list(ast_contains(mod, test, ignore_var_names=True))
     assert len(matches) == 3
+
 
 def test_ast_graph_walk():
     source = """
