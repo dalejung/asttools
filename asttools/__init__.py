@@ -24,20 +24,25 @@ from .function import (
     func_rewrite,
     create_function,
     func_code,
-    ast_argspec,
-    get_invoked_args
+    ast_argspec
 )
 
 from .matcher import Matcher
 
+
 def reload_locals(frame):
-    ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object(frame), ctypes.c_int(1))
+    ctypes.pythonapi.PyFrame_LocalsToFast(
+        ctypes.py_object(frame),
+        ctypes.c_int(1)
+    )
+
 
 def replace_node(parent, field_name, field_index, node):
     if field_index is None:
         setattr(parent, field_name, node)
     else:
         getattr(parent, field_name)[field_index] = node
+
 
 def delete_node(parent, field_name, field_index, node):
     if field_index is None:
@@ -47,6 +52,7 @@ def delete_node(parent, field_name, field_index, node):
         old_node = getattr(parent, field_name).pop(field_index)
     assert node is old_node, "Existing node is not node we're trying to delete"
 
+
 def is_load_name(node):
     """ is node a Name(ctx=Load()) variable? """
     if not isinstance(node, ast.Name):
@@ -55,9 +61,11 @@ def is_load_name(node):
     if isinstance(node.ctx, ast.Load):
         return True
 
+
 def load_names(code):
     names = (n.id for n in filter(is_load_name, ast.walk(code)))
     return list(OrderedDict.fromkeys(names))
+
 
 def field_iter(node):
     """ yield field, field_name, field_index """
@@ -117,6 +125,7 @@ def ast_field_equal(node1, node2):
 
     return True
 
+
 def ast_equal(code1, code2, check_line_col=False, ignore_var_names=False):
     """
     Checks whether ast nodes are equivalent recursively.
@@ -149,6 +158,7 @@ def ast_equal(code1, code2, check_line_col=False, ignore_var_names=False):
 
     return True
 
+
 def ast_contains(code, fragment, ignore_var_names=False):
     """ tests whether fragment is a child within code. """
     expr = _convert_to_expression(fragment)
@@ -166,9 +176,10 @@ def ast_contains(code, fragment, ignore_var_names=False):
 
     return False
 
+
 def _value_equal(left, right):
-    # TODO move this, make it use dispatch? not sure if there is a general value
-    # equality function out there
+    # TODO move this, make it use dispatch? not sure if there is a general
+    # value equality function out there
     if isinstance(left, pd.core.generic.NDFrame):
         return left.equals(right)
 
@@ -177,11 +188,12 @@ def _value_equal(left, right):
 
     try:
         return left == right
-    except:
+    except Exception:
         return False
 
+
 def code_context_subset(code, context, key_code, key_context,
-                    ignore_var_names=False):
+                        ignore_var_names=False):
     """
     Try to find subset match and returns a node context dict as returned
     by ast_contains.
@@ -197,11 +209,12 @@ def code_context_subset(code, context, key_code, key_context,
     """
     # check expresion
     matches = ast_contains(code, key_code,
-                                    ignore_var_names=ignore_var_names)
+                           ignore_var_names=ignore_var_names)
     for matched_item in matches:
         matched = matched_item['node']
         if code_context_match(matched, context, key_code, key_context):
             yield matched_item
+
 
 def code_context_match(matched, matched_context, key_code, key_context):
 
@@ -222,6 +235,7 @@ def code_context_match(matched, matched_context, key_code, key_context):
 
     return True
 
+
 def generate_getter_var(manifest, value, prefix="_AST"):
     """
     Generate a Name node that has an obscure name to prevent collisions
@@ -231,6 +245,7 @@ def generate_getter_var(manifest, value, prefix="_AST"):
     getter = ast.Name(id=var_name, ctx=ast.Load())
     ns_update = {var_name: value}
     return ast.fix_missing_locations(getter), ns_update
+
 
 def generate_getter_lazy(manifest, prefix="_AST"):
     """
@@ -245,8 +260,6 @@ def generate_getter_lazy(manifest, prefix="_AST"):
     keywords = []
 
     getter = ast.Call(func=func, args=args, keywords=keywords,
-                        starargs=None, kwargs=None)
+                      starargs=None, kwargs=None)
     ns_update = {var_name: manifest}
     return ast.fix_missing_locations(getter), ns_update
-
-

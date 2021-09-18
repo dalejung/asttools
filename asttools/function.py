@@ -1,12 +1,21 @@
 import ast
 import inspect
 import types
-from typing import List
+from typing import List, Union, Callable
 
 from earthdragon.typecheck import typecheck
 
 from .common import get_source, quick_parse
 from .repr import ast_source
+
+
+def klass_grabber(ns, func_name):
+    return getattr(ns['klass'], func_name)
+
+
+def getitem_grabber(ns, func_name):
+    return ns[func_name]
+
 
 def create_function(code, func=None,
                     globals=None,
@@ -51,7 +60,7 @@ def create_function(code, func=None,
     func_def = module.body[0]
     func_name = func_def.name
 
-    grabber = lambda ns, func_name: ns[func_name]
+    grabber = getitem_grabber
 
     uses_super = False
     if func and func.__closure__ and not ignore_closure:
@@ -63,7 +72,7 @@ def create_function(code, func=None,
     if uses_super:
         class_def = wrap_func_def_in_class(func_def)
         module.body = [class_def]
-        grabber = lambda ns, func_name: getattr(ns['klass'], func_name)
+        grabber = klass_grabber
 
     module = ast.fix_missing_locations(module)
     module_obj = compile(module, filename, 'exec')
@@ -73,12 +82,16 @@ def create_function(code, func=None,
     new_func = grabber(ns, func_name)
 
     if uses_super:
-        new_func = types.FunctionType(new_func.__code__, new_func.__globals__,
-                                    closure=func.__closure__)
+        new_func = types.FunctionType(
+            new_func.__code__,
+            new_func.__globals__,
+            closure=func.__closure__
+        )
 
     new_func.__asttools_source__ = ast_source(module)
 
     return new_func
+
 
 def wrap_func_def_in_class(func_def):
     class_def = ast.ClassDef(
@@ -105,6 +118,7 @@ def func_rewrite(transform, post_wrap=None):
         return new_func
     return _wrapper
 
+
 def func_code(func):
     """
     return the ast.FunctionDef node of a function
@@ -115,28 +129,6 @@ def func_code(func):
     assert isinstance(func_def, ast.FunctionDef)
     return func_def
 
-def get_invoked_args(argspec, *args, **kwargs):
-    """
-    Based on a functions argspec, figure out what the resultant function
-    scope would be based on variables passed in
-    """
-    if not isinstance(argspec, inspect.ArgSpec):
-        # handle functools.wraps functions
-        if hasattr(argspec, '__wrapped__'):
-            argspec = inspect.getargspec(argspec.__wrapped__)
-        else:
-            argspec = inspect.getargspec(argspec)
-
-    # we're assuming self is not in *args for method calls
-    args_names = argspec.args
-    if argspec.args[0] == 'self':
-        args_names = args_names[1:]
-
-    realized_args = dict(zip(args_names, args))
-    assert not set(realized_args).intersection(kwargs)
-    res = kwargs.copy()
-    res.update(realized_args)
-    return res
 
 @typecheck
 def func_def_args(func_def: ast.FunctionDef) -> List[str]:
@@ -151,6 +143,7 @@ def func_def_args(func_def: ast.FunctionDef) -> List[str]:
     if args[0] == 'self':
         args.pop(0)
     return args
+
 
 def func_args_realizer(args):
     """
@@ -167,6 +160,7 @@ def func_args_realizer(args):
     items_list = "[ {0} ]".format(', '.join(items))
     return items_list
 
+
 def arg_name(arg):
     if isinstance(arg, str):
         return arg
@@ -177,13 +171,15 @@ def arg_name(arg):
     if isinstance(arg, (ast.arg, ast.keyword)):
         return arg.arg
     raise TypeError("Only accepts str, Name and arg. "
-            "Received{0}".format(type(arg)))
+                    "Received{0}".format(type(arg)))
+
 
 def arglist(node):
     try:
         return node.args.args
     except AttributeError:
         return node.args
+
 
 def ast_argspec(node):
     """
@@ -210,6 +206,7 @@ def ast_argspec(node):
 
     return ret
 
+
 def _ast_argspec_call(node):
     args, starargs = split_call_args(node)
     keywords, kwargs = split_call_kwargs(node)
@@ -224,6 +221,7 @@ def _ast_argspec_call(node):
 
     argspec = inspect.ArgSpec(args, starargs, kwargs, kw_defaults)
     return argspec
+
 
 def _ast_argspec_def(node):
     args = [arg_name(arg) for arg in node.args.args]
@@ -257,9 +255,12 @@ def add_call_starargs(node, name):
     if isinstance(name, str):
         value = ast.Name(id=name, ctx=ast.Load())
 
-    starred = ast.Starred(value=value,
-            ctx=ast.Load())
+    starred = ast.Starred(
+        value=value,
+        ctx=ast.Load()
+    )
     node.args.append(starred)
+
 
 def get_call_starargs(node):
     """
@@ -282,6 +283,7 @@ def get_call_starargs(node):
         raise ValueError("Only support starargs that unpack a variable")
     return last.value.id
 
+
 def get_call_kwargs(node):
     """
     Get the kwargs name from Call node.
@@ -298,13 +300,14 @@ def get_call_kwargs(node):
 
     last = keywords[-1]
     # keywords have arg = None
-    if not last.arg is None:
+    if last.arg is not None:
         return None
 
     if not isinstance(last.value, ast.Name):
         raise ValueError("Only support starargs that unpack a variable")
 
     return last.value.id
+
 
 def split_call_args(node):
     """
@@ -315,6 +318,7 @@ def split_call_args(node):
     if stararg:
         args = args[:-1]
     return args, stararg
+
 
 def split_call_kwargs(node):
     """
