@@ -51,8 +51,7 @@ def create_function(code, func=None,
 
     module = code
     if isinstance(code, ast.FunctionDef):
-        module = ast.Module()
-        module.body = [code]
+        module = ast.Module([code], type_ignores=[])
 
     if not isinstance(module, ast.Module):
         raise TypeError("Expected ast.Module by this point.")
