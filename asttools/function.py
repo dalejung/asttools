@@ -1,12 +1,15 @@
 import ast
 import inspect
 import types
-from typing import List, Union, Callable
+from typing import List
 
 from earthdragon.typecheck import typecheck
 
-from .common import get_source, quick_parse
+from .common import get_source
 from .repr import ast_source
+from .sigparams import (
+    ast_sigparams as ast_sigparams,
+)
 
 
 def klass_grabber(ns, func_name):
@@ -160,76 +163,11 @@ def func_args_realizer(args):
     return items_list
 
 
-def arg_name(arg):
-    if isinstance(arg, str):
-        return arg
-    if isinstance(arg, ast.Starred):
-        return arg_name(arg.value)
-    if isinstance(arg, ast.Name):
-        return arg.id
-    if isinstance(arg, (ast.arg, ast.keyword)):
-        return arg.arg
-    raise TypeError("Only accepts str, Name and arg. "
-                    "Received{0}".format(type(arg)))
-
-
 def arglist(node):
     try:
         return node.args.args
     except AttributeError:
         return node.args
-
-
-def ast_argspec(node):
-    """
-    Get the argspec equivalent from ast.Call and ast.FunctionDef.
-
-    Both:
-
-    def func(arg1, arg2, *args, **kwargs):
-        pass
-
-    func(arg1, arg2, *args, **kwargs)
-
-    will return the same argspec.
-
-    Note: The defaults will ast.Node since we don't know the values of
-    variables till runtime.
-    """
-    if isinstance(node, ast.Call):
-        ret = _ast_argspec_call(node)
-    elif isinstance(node, ast.FunctionDef):
-        ret = _ast_argspec_def(node)
-    else:
-        raise TypeError()
-
-    return ret
-
-
-def _ast_argspec_call(node):
-    args, starargs = split_call_args(node)
-    keywords, kwargs = split_call_kwargs(node)
-
-    args = [arg_name(arg) for arg in args]
-    kw = [(kw.arg, kw.value) for kw in keywords]
-
-    kw_args, kw_defaults = [], []
-    if kw:
-        kw_args, kw_defaults = zip(*kw)
-    args = args + list(kw_args)
-
-    argspec = inspect.ArgSpec(args, starargs, kwargs, kw_defaults)
-    return argspec
-
-
-def _ast_argspec_def(node):
-    args = [arg_name(arg) for arg in node.args.args]
-    kw_defaults = node.args.defaults
-
-    varargs = node.args.vararg and node.args.vararg.arg
-    keywords = node.args.kwarg and node.args.kwarg.arg
-    argspec = inspect.ArgSpec(args, varargs, keywords, kw_defaults)
-    return argspec
 
 
 def add_call_kwargs(node, name):
@@ -261,70 +199,20 @@ def add_call_starargs(node, name):
     node.args.append(starred)
 
 
-def get_call_starargs(node):
-    """
-    Get the stararg name from Call node.
-
-    Only supports the pre 3.5 semantic of a single *args at the end.
-    """
-    args = node.args
-    if not args:
-        return None
-    last = args[-1]
-    star_count = sum(map(lambda obj: isinstance(obj, ast.Starred), args))
-    if star_count > 1:
-        raise NotImplementedError("Currently only supports one stararg")
-
-    if not isinstance(last, ast.Starred):
-        return
-
-    if not isinstance(last.value, ast.Name):
-        raise ValueError("Only support starargs that unpack a variable")
-    return last.value.id
-
-
 def get_call_kwargs(node):
-    """
-    Get the kwargs name from Call node.
-    """
-    keywords = node.keywords
-    if len(keywords) == 0:
-        return None
-
-    # dunno if we can get more than one dict unpack in python 3.5
-    # check anyways
-    kwargs_count = sum(map(lambda obj: obj.arg is None, keywords))
-    if kwargs_count > 1:
-        raise NotImplementedError("Currently only supports one kwargs")
-
-    last = keywords[-1]
-    # keywords have arg = None
-    if last.arg is not None:
-        return None
-
-    if not isinstance(last.value, ast.Name):
-        raise ValueError("Only support starargs that unpack a variable")
-
-    return last.value.id
+    sigparams = ast_sigparams(node)
+    for name, param in sigparams.items():
+        if param.kind == inspect.Parameter.VAR_KEYWORD:
+            return name
 
 
-def split_call_args(node):
-    """
-    Split Call.args into args and starargs
-    """
-    args = node.args
-    stararg = get_call_starargs(node)
-    if stararg:
-        args = args[:-1]
-    return args, stararg
-
-
-def split_call_kwargs(node):
-    """
-    Split Call.keywords into keywords and kwargs
-    """
-    keywords = node.keywords
-    kwargs = get_call_kwargs(node)
-    if kwargs:
-        keywords = keywords[:-1]
-    return keywords, kwargs
+def get_call_starargs(node):
+    sigparams = ast_sigparams(node)
+    starargs = [
+        param.name for param in sigparams.values()
+        if param.kind == inspect.Parameter.VAR_POSITIONAL
+    ]
+    if len(starargs) > 1:
+        raise NotImplementedError("Got more than one starargs")
+    if len(starargs) == 1:
+        return starargs[0]

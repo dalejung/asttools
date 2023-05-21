@@ -84,3 +84,15 @@ def unwrap(node):
         return node.n
     raise TypeError("Only handle primitive like nodes")
 
+
+def get_arg_name(arg):
+    if isinstance(arg, str):
+        return arg
+    if isinstance(arg, ast.Starred):
+        return arg_name(arg.value)
+    if isinstance(arg, ast.Name):
+        return arg.id
+    if isinstance(arg, (ast.arg, ast.keyword)):
+        return arg.arg
+    raise TypeError("Only accepts str, Name and arg. "
+                    "Received{0}".format(type(arg)))

@@ -9,13 +9,13 @@ from .. import get_source, quick_parse, Matcher
 from ..function import (
     create_function,
     func_rewrite,
-    ast_argspec,
     func_def_args,
     func_args_realizer,
     add_call_kwargs,
     add_call_starargs,
+    ast_sigparams,
+    get_call_kwargs,
     get_call_starargs,
-    get_call_kwargs
 )
 from ..transform import coroutine, transform
 from ..graph import iter_fields
@@ -102,18 +102,18 @@ def test_matcher_with():
     assert not matcher.match(test_code.body[0])
 
 
-def ast_argspec_case(source):
+def ast_sigparam_case(source):
     code = ast.parse(dedent(source))
     func_def = code.body[0]
     call = code.body[1].value
     assert isinstance(func_def, ast.FunctionDef)
     assert isinstance(call, ast.Call)
 
-    func_argspec = ast_argspec(func_def)
-    call_argspec = ast_argspec(call)
-    same, failures = ast_argspec_equal(func_argspec, call_argspec)
-    if not same:
-        raise AssertionError(str(failures))
+    func_sigparams = ast_sigparams(func_def)
+    call_sigparams = ast_sigparams(call)
+    same = ast_sigparams_equal(func_sigparams, call_sigparams)
+    if same is not True:
+        raise AssertionError(f"{same} {func_sigparams=} {call_sigparams=}")
 
 
 def _equal(left, right):
@@ -132,17 +132,28 @@ def listify(x):
     return [x]
 
 
-def ast_argspec_equal(left, right):
-    attrs = ['args', 'varargs', 'keywords', 'defaults']
-    lefts = [getattr(left, attr) for attr in attrs]
-    rights = [getattr(right, attr) for attr in attrs]
-    for lval, rval in zip(lefts, rights):
-        lval, rval = listify(lval), listify(rval)
-        ret = _equal(lval, rval)
-        failures = list(filter(lambda x: not x[0], ret))
-        if any(failures):
-            return False, failures
-    return True, []
+def ast_sigparams_equal(left, right):
+    failures = {}
+    for name, left_var in left.items():
+        if name not in right:
+            failures[name] = 'Missing right'
+            continue
+        right_var = right[name]
+        if left_var == right_var:
+            continue
+
+        mismatches = {}
+        for attr in ['name', 'default', 'annotation', 'kind']:
+            right_attr = getattr(right_var, attr)
+            left_attr = getattr(left_var, attr)
+            if left_attr != right_attr:
+                mismatches[attr] = (left_attr, right_attr)
+            failures[name] = mismatches
+
+    if len(failures) == 0:
+        return True
+
+    return failures
 
 
 def test_argsepc_equal():
@@ -152,7 +163,7 @@ def test_argsepc_equal():
 
     func(arg1, arg2, *args, **kwargs)
     """
-    ast_argspec_case(source)
+    ast_sigparam_case(source)
 
     source = """
     def func(arg1, arg2=1):
@@ -160,7 +171,7 @@ def test_argsepc_equal():
 
     func(arg1, arg2=1)
     """
-    ast_argspec_case(source)
+    ast_sigparam_case(source)
 
     source = """
     def func(arg1, arg2='different'):
@@ -169,7 +180,7 @@ def test_argsepc_equal():
     func(arg1, arg2=1)
     """
     with pytest.raises(AssertionError):
-        ast_argspec_case(source)
+        ast_sigparam_case(source)
 
 
 def test_create_function_method_super():
@@ -337,3 +348,23 @@ def test_get_call_kwargs():
     call_node = quick_parse(dedent(call_text)).value
     with pytest.raises(ValueError):
         starargs = get_call_kwargs(call_node)  # noqa: F841
+
+
+if __name__ == '__main__':
+    def func(arg1, arg2, *args, **kwargs):
+        pass
+    ...
+    source = """
+    def func(arg1, arg2, *args, **kwargs):
+        pass
+
+    func(arg1, arg2, *args, **kwargs)
+    """
+    code = ast.parse(dedent(source))
+    func_def = code.body[0]
+    call = code.body[1].value
+    assert isinstance(func_def, ast.FunctionDef)
+    assert isinstance(call, ast.Call)
+
+    # func_argspec = ast_argspec(func_def)
+    # call_argspec = ast_argspec(call)

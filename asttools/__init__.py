@@ -24,7 +24,7 @@ from .function import (
     func_rewrite,
     create_function,
     func_code,
-    ast_argspec
+    ast_sigparams
 )
 
 from .matcher import Matcher
