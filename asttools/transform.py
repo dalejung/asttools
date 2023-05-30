@@ -1,5 +1,4 @@
 import ast
-import astor
 from ast import AST
 from textwrap import dedent
 from .graph import graph_walk, NodeLocation

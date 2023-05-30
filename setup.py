@@ -1,15 +1,12 @@
 from distutils.core import setup
 
-DISTNAME='asttools'
-FULLVERSION='0.1'
+DISTNAME = 'asttools'
+FULLVERSION = '0.1'
 
 setup(
-    name = DISTNAME,
-    version = FULLVERSION,
-    packages = [
+    name=DISTNAME,
+    version=FULLVERSION,
+    packages=[
         'asttools',
     ],
-    install_requires = [
-        "astor"
-    ]
 )

@@ -1,7 +1,5 @@
 import ast
 
-import astor
-
 from .graph import graph_walk
 
 def ast_repr(obj):
@@ -17,10 +15,7 @@ def ast_print(*objs):
     print(*list(ast_repr(obj) for obj in objs))
 
 def ast_source(obj):
-    # astor doens't support ast.Expression atm
-    if isinstance(obj, ast.Expression):
-        obj = obj.body
-    source =  astor.to_source(obj)
+    source = ast.unparse(obj)
     return source.strip()
 
 class IndentDumper:

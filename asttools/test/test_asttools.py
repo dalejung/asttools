@@ -279,12 +279,12 @@ def test_code_context_subset_by_value():
         'y': 2
     }
 
-    child_code = ast.parse("x + y") # note that df was renamed blah
+    child_code = ast.parse("x + y")  # note that df was renamed blah
     res = list(code_context_subset(code, ns, child_code, child_ns,
                                         ignore_var_names=True))
 
     # matches first group by value
-    assert ast_source(res[0]['node']) == '(a + b)'
+    assert ast_source(res[0]['node']) == 'a + b'
 
     # try to match second group
     child_ns = {
@@ -294,7 +294,7 @@ def test_code_context_subset_by_value():
     res = list(code_context_subset(code, ns, child_code, child_ns,
                                         ignore_var_names=True))
     # matched the second group
-    assert ast_source(res[0]['node']) == '(c + d)'
+    assert ast_source(res[0]['node']) == 'c + d'
 
 def test_code_context_subset_match_multi():
     # try to match multiple groups
@@ -318,7 +318,7 @@ def test_code_context_subset_match_multi():
                                         ignore_var_names=True))
 
     test = list(map(lambda x: ast_source(x['node']), res))
-    correct = ['(a + b)', '(c + d)']
+    correct = ['a + b', 'c + d']
     assert collections.Counter(test) == collections.Counter(correct)
 
 def test_generate_getter_var():
