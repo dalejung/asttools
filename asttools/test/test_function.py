@@ -20,9 +20,6 @@ from ..function import (
 from ..transform import coroutine, transform
 from ..graph import iter_fields
 
-from .util import run_in_place, preamble
-preamble()
-
 
 def test_create_function():
     # grab ast.walk

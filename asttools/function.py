@@ -3,8 +3,6 @@ import inspect
 import types
 from typing import List
 
-from earthdragon.typecheck import typecheck
-
 from .common import get_source
 from .repr import ast_source
 from .sigparams import (
@@ -132,7 +130,6 @@ def func_code(func):
     return func_def
 
 
-@typecheck
 def func_def_args(func_def: ast.FunctionDef) -> List[str]:
     args = [arg.arg for arg in func_def.args.args]
     kw_only = [arg.arg for arg in func_def.args.kwonlyargs]
